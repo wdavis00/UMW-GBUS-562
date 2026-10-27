@@ -221,3 +221,7 @@ __marimo__/
 
 # macOS
 .DS_Store
+
+# API keys / secrets (never commit)
+APIKey.txt
+*.key
