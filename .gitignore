@@ -225,3 +225,6 @@ __marimo__/
 # API keys / secrets (never commit)
 APIKey.txt
 *.key
+
+# Chroma vector databases (rebuilt locally with ask.py --rebuild)
+chroma_db/
