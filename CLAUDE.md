@@ -26,3 +26,9 @@ Guidance for Claude Code when working in this repository.
 ## Building with Claude
 
 - Use the official Anthropic SDK (`anthropic` for Python) and default to the latest, most capable Claude models unless the assignment calls for something else.
+
+## Python environment
+
+- **Always use the `.venv` virtual environment at the repo root for running Python and installing packages** (Python 3.13). Use `.venv/bin/python` to run scripts and `.venv/bin/python -m pip install ...` to install packages — never the system, Anaconda, or global Python/pip.
+- If `.venv` is missing, recreate it with a Python 3.13 interpreter (e.g. `/opt/anaconda3/envs/py313/bin/python3.13 -m venv .venv`).
+- `.venv` is listed in `.gitignore`; never commit it.
