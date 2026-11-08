@@ -1,0 +1,30 @@
+#1  similarity 0.671  card-dispute-procedure.html
+Debit Card Dispute Procedure - How much the member may have to pay
+Source file: card-dispute-procedure.html
+Version: Version 4 (current). Owner: Card Services.
+
+A member's share of the loss from unauthorized debit card transactions depends on how quickly they report it. If the member reports a lost or stolen card within two business days of learning about it, they pay no more than $50. If they report it later than that, they may pay up to $500. If unauthorized transactions appear on a statement and the member does not report them within 60 days after the statement was sent, they may have to pay for transactions after those 60 days in full.
+
+#2  similarity 0.519  card-dispute-procedure.html
+Debit Card Dispute Procedure - When a member reports a transaction they did not make
+Source file: card-dispute-procedure.html
+Version: Version 4 (current). Owner: Card Services.
+
+When a member says a debit card transaction on their account was not made or authorized by them, freeze the card right away in the card system, then open a dispute case. Order a replacement card. The replacement is free when the card was used for fraud.
+
+#3  similarity 0.475  card-dispute-procedure.html
+Debit Card Dispute Procedure - Provisional credit
+Source file: card-dispute-procedure.html
+Version: Version 4 (current). Owner: Card Services.
+
+Larkfield investigates every dispute. If the investigation is not finished within 10 business days, the member receives a provisional credit for the disputed amount while it continues. If the investigation finds the transaction was authorized, the provisional credit is reversed and the member is told in writing.
+
+#4  similarity 0.456  consumer-fee-schedule.html
+Consumer Fee Schedule - ATM and debit card fees
+Source file: consumer-fee-schedule.html
+Version: Version 8 (current). Replaces Version 7. Owner: Member Services.
+
+Withdrawals at Larkfield ATMs and at CO-OP network ATMs are free. A withdrawal at any other ATM costs $2, and the ATM's owner may charge its own fee as well. A replacement debit card costs $10, or $30 with rush delivery. A replacement card is free when the old card was reported lost or stolen because of fraud.
+
+ANSWER
+They would pay no more than $50, since they reported the lost card within two business days of learning about it [card-dispute-procedure.html].

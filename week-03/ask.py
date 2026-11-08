@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""ask.py - answer questions about Copperline Manufacturing's finance documents with RAG.
+"""ask.py - answer questions about a folder of documents with RAG.
 
 How it works
-  1. Every document in week-03/copperline-docs/ (HTML, PDF, Markdown, or plain text) is split
+  1. Every document in the documents folder (HTML, PDF, Markdown, or plain text) is split
      into one chunk per section. Each chunk starts with "<document title> - <section heading>",
      followed by the source file and version line, so it makes sense on its own.
-  2. The chunks are stored in a Chroma database (week-03/chroma_db/) using Chroma's built-in
-     embedding model (all-MiniLM-L6-v2). The database is built automatically on first run.
+     The folder is set with --docs; the default is week-03/copperline-docs/.
+  2. The chunks are stored in a Chroma database using Chroma's built-in embedding model
+     (all-MiniLM-L6-v2). Each documents folder gets its own database under week-03/chroma_db/
+     (git-ignored). A folder's database is built automatically the first time it is used.
   3. For each question, the 4 most similar chunks are retrieved and shown, then sent to Claude
      with instructions to answer only from those sources and cite the source file for each fact.
 
@@ -15,6 +17,8 @@ Usage (run from the repo root, using the repo's .venv):
   .venv/bin/python week-03/ask.py                 # interactive mode: ask several questions
   .venv/bin/python week-03/ask.py --rebuild       # re-index after adding/removing documents
   .venv/bin/python week-03/ask.py --list-chunks   # print every chunk (to check the chunking)
+  .venv/bin/python week-03/ask.py --docs week-03/larkfield-docs "What is the overdraft fee?"
+  .venv/bin/python week-03/ask.py "..." --save week-03/runs/q1.txt   # also save the full output
 
 API key: read at runtime from API-Key.txt (or APIKey.txt) in the folder that contains the
 repository, falling back to the ANTHROPIC_API_KEY environment variable. It is never printed
@@ -44,8 +48,8 @@ KEY_DIR = REPO_ROOT.parent                        # folder that contains the rep
 KEY_FILE_NAMES = ("API-Key.txt", "APIKey.txt")
 
 DOCS_DIR = HERE / "copperline-docs"
-DB_DIR = HERE / "chroma_db"
-COLLECTION_NAME = "copperline_docs"
+DB_ROOT = HERE / "chroma_db"   # one sub-folder per documents folder; ignored by .gitignore
+COLLECTION_NAME = "docs"
 
 MODEL = "claude-sonnet-5"
 TOP_K = 4
@@ -65,15 +69,14 @@ CONTEXT_NOTES = {
     ),
 }
 
-SYSTEM_PROMPT = """You answer questions from Copperline Manufacturing employees about company \
-finance policies. The user's message contains numbered source excerpts from Copperline's \
-finance documents, followed by the question.
+SYSTEM_PROMPT = """You answer questions about an organization's documents. The user's message \
+contains numbered source excerpts from those documents, followed by the question.
 
 Rules:
 - Answer only from the facts stated in the sources. Do not use outside knowledge, and do not \
 guess at policies the sources don't state.
 - Cite the source file for every fact, in square brackets right after the fact, for example: \
-Dinner in Tier 1 cities is reimbursed up to $75 [travel-expense-policy.html].
+The fee is $25 [fee-schedule.html].
 - If the sources don't contain the answer, say "The provided documents don't answer this \
 question." and don't add anything else. If they answer only part of the question, answer that \
 part and say which part the documents don't cover.
@@ -405,7 +408,7 @@ def build_chunks(docs_dir: Path) -> list[Chunk]:
 
     # Footer contact lines are usually identical on every page; store each distinct one once.
     for i, (contact, source) in enumerate(contacts.items()):
-        text = f"Finance Department contact information\nSource file: {source}\n\n{contact}"
+        text = f"Contact information\nSource file: {source}\n\n{contact}"
         all_chunks.append(Chunk(
             id=f"contact::{i}", text=text,
             metadata={"source": source, "title": "Contact information", "section": "Contact",
@@ -427,9 +430,24 @@ def docs_fingerprint(docs_dir: Path) -> dict[str, str]:
     }
 
 
-def get_client():
+def db_dir_for(docs_dir: Path) -> Path:
+    """Database folder for one documents folder: chroma_db/<folder name>-<path hash>.
+
+    The hash of the full path keeps two folders with the same name apart."""
+    digest = hashlib.sha256(str(docs_dir.resolve()).encode("utf-8")).hexdigest()[:8]
+    return DB_ROOT / f"{docs_dir.name}-{digest}"
+
+
+def display_path(path: Path) -> str:
+    try:
+        return path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:  # outside the repo
+        return str(path)
+
+
+def get_client(docs_dir: Path):
     import chromadb
-    return chromadb.PersistentClient(path=str(DB_DIR))
+    return chromadb.PersistentClient(path=str(db_dir_for(docs_dir)))
 
 
 def embedding_function():
@@ -440,12 +458,12 @@ def embedding_function():
 def build_index(docs_dir: Path):
     if not docs_dir.is_dir():
         sys.exit(f"Documents folder not found: {docs_dir}")
-    print(f"Building the Chroma index from {docs_dir.relative_to(REPO_ROOT)}/ ...")
+    print(f"Building the Chroma index from {display_path(docs_dir)}/ ...")
     chunks = build_chunks(docs_dir)
     if not chunks:
         sys.exit("No chunks were created - is the documents folder empty?")
 
-    client = get_client()
+    client = get_client(docs_dir)
     try:
         client.delete_collection(COLLECTION_NAME)
     except Exception:
@@ -465,13 +483,17 @@ def build_index(docs_dir: Path):
         documents=[c.text for c in chunks],
         metadatas=[c.metadata for c in chunks],
     )
-    print(f"Stored {len(chunks)} chunks in {DB_DIR.relative_to(REPO_ROOT)}/\n")
+    print(f"Stored {len(chunks)} chunks in {display_path(db_dir_for(docs_dir))}/\n")
     return collection
 
 
 def open_index(docs_dir: Path):
     """Open the existing index, building it if missing; warn if the documents changed."""
-    client = get_client()
+    if not docs_dir.is_dir():
+        sys.exit(f"Documents folder not found: {docs_dir}")
+    if not db_dir_for(docs_dir).is_dir():
+        return build_index(docs_dir)  # don't let Chroma create an empty database first
+    client = get_client(docs_dir)
     try:
         collection = client.get_collection(COLLECTION_NAME, embedding_function=embedding_function())
     except Exception:
@@ -562,12 +584,29 @@ def ask_claude(client, question: str, hits: list[dict]) -> str:
     return answer or "(no answer returned)"
 
 
-def answer_question(collection, client, question: str) -> None:
+def save_run(path: Path, hits: list[dict], answer: str) -> None:
+    """Write the full run: every retrieved chunk in full, a line 'ANSWER', then the answer."""
+    lines = []
+    for h in hits:
+        lines.append(f"#{h['rank']}  similarity {h['score']:.3f}  {h['meta']['source']}")
+        lines.append(h["text"])
+        lines.append("")
+    lines.append("ANSWER")
+    lines.append(answer)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def answer_question(collection, client, question: str, save: Path | None = None) -> None:
     hits = retrieve(collection, question)
     print_hits(hits)
+    answer = ask_claude(client, question, hits)
     print("Answer:")
-    print(ask_claude(client, question, hits))
+    print(answer)
     print()
+    if save:
+        save_run(save, hits, answer)
+        print(f"Saved this run to {display_path(save)}")
 
 
 # --------------------------------------------------------------------------------------
@@ -576,7 +615,7 @@ def answer_question(collection, client, question: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Answer questions about Copperline's finance documents (RAG with Claude).")
+        description="Answer questions about a folder of documents (RAG with Claude).")
     parser.add_argument("question", nargs="*", help="question to ask (omit for interactive mode)")
     parser.add_argument("--rebuild", action="store_true",
                         help="rebuild the Chroma database from the documents folder")
@@ -584,8 +623,13 @@ def main() -> None:
                         help="print every chunk the documents produce, then exit")
     parser.add_argument("--docs", type=Path, default=DOCS_DIR,
                         help=f"documents folder (default: {DOCS_DIR.relative_to(REPO_ROOT)})")
+    parser.add_argument("--save", type=Path, metavar="FILE",
+                        help="also write the retrieved chunks and the answer to FILE (UTF-8)")
     args = parser.parse_args()
     docs_dir = args.docs.resolve()
+    save = args.save.resolve() if args.save else None
+    if save and not args.question:
+        parser.error("--save needs a question on the command line")
 
     if args.list_chunks:
         for c in build_chunks(docs_dir):
@@ -601,10 +645,11 @@ def main() -> None:
     client = anthropic.Anthropic(api_key=load_api_key())
 
     if question:
-        answer_question(collection, client, question)
+        answer_question(collection, client, question, save)
         return
 
-    print("Ask a question about Copperline's finance documents (blank line or Ctrl-D to quit).")
+    print(f"Ask a question about the documents in {display_path(docs_dir)}/ "
+          "(blank line or Ctrl-D to quit).")
     while True:
         try:
             question = input("\nQuestion: ").strip()
