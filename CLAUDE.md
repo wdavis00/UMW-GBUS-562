@@ -23,6 +23,14 @@ Guidance for Claude Code when working in this repository.
   - Before every commit, check the staged diff (`git diff --cached`) for anything resembling a key (`sk-ant-...`). If found, stop and remove it before committing.
   - `.gitignore` excludes `APIKey.txt`, `*.key`, and `.env` as a safety net — keep those entries.
 
+## Email app key — SECURITY RULES (always follow)
+
+- The email app key lives in `../Agent-Email.txt`, i.e. the parent folder **outside** this repo:
+  `/Users/wdavis/Library/CloudStorage/OneDrive-Personal/School/UMW-MS in AI in Business/GBUS-562/Agent-Email.txt`
+- The user's programs may read `../Agent-Email.txt` at run time (resolved relative to the repo).
+- **Claude must never open or read this file itself**: no Read tool, `cat`, `head`, `grep`, or any other command that shows its contents.
+- **Never write its contents to any file.** Never hard-code, print, or log the key, and never put it in commits, comments, READMEs, or PR descriptions.
+
 ## Building with Claude
 
 - Use the official Anthropic SDK (`anthropic` for Python) and default to the latest, most capable Claude models unless the assignment calls for something else.
