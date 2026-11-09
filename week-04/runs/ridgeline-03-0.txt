@@ -1,0 +1,55 @@
+Sender:  Brittany Cole <brittany.cole@ridgelinehotels.example>
+Subject: Honeymoon
+Email:   03-brittany-honeymoon.eml
+Org:     ridgeline-hotels
+Model:   claude-sonnet-5
+
+Tools offered: search_policy, get_leave_balance, save_reply
+
+Step 1: get_leave_balance
+  inputs: {}
+  result: {   "email": "brittany.cole@ridgelinehotels.example",   "leave_balances": {     "PTO Days Remaining": 4,     "Sick Days Remaining": 3   },   "details": {     "Employee Name": "Brittany Cole",     "Hotel": "Ridgeline Taos",     "Role": "Server",     "Supervisor": "Amanda Ross"   },   "organization": ...
+
+Step 2: search_policy
+  inputs: {"query": "requesting consecutive PTO days in advance"}
+  result: {   "query": "requesting consecutive PTO days in advance",   "results": [     {       "rank": 1,       "source_file": "pto-policy.html",       "document_title": "Paid Time Off (PTO) Policy",       "section": "Requesting PTO",       "version": "Effective this year. Owner: People and Culture.",       ...
+
+Step 3: search_policy
+  inputs: {"query": "not enough PTO options unpaid leave or borrowing days"}
+  result: {   "query": "not enough PTO options unpaid leave or borrowing days",   "results": [     {       "rank": 1,       "source_file": "pto-policy.html",       "document_title": "Paid Time Off (PTO) Policy",       "section": "Borrowing PTO you haven't earned yet",       "version": "Effective this year. Ow...
+
+Step 4: save_reply
+  inputs: {"reply_text": "Hi Brittany,\n\nCongratulations on your upcoming wedding! 🎉\n\nI checked your balance, and you currently have 4 PTO days remaining, which is 2 short of the 6 days you'd like to take for your honeymoon.\n\nThe good news is you have a couple of options:\n\n1. **Borrow PTO**: Per our PTO Policy (pto-policy.html), if a planned absence is longer than your current balance, you can borrow up to 3 PTO days from what you'll earn in the next six months. This would easily cover the extra 2 days you need. Borrowed days require your general manager's approval, and the request must be submitted at least 30 days in advance. Keep in mind that if you were to leave Ridgeline before earning those days back, their value would be deducted from your final paycheck.\n\n2. **Mix PTO with unpaid days**, if you'd rather not borrow against future PTO — just let your supervisor know your preference when you submit the request.\n\nSince you're requesting 6 consecutive days, you'll need your supervisor Amanda Ross's approval at least 30 days ahead of your travel dates (per the \"Requesting PTO\" section of the same policy), plus your general manager's sign-off if you choose to borrow days or if any blackout dates are involved. Since your honeymoon is about two months out, you have plenty of time to submit the request through the scheduling system.\n\nPlease also check with Amanda on any blackout dates at Ridgeline Taos that might affect approval timing.\n\nCongratulations again, and let us know if you have any other questions!\n\nBest,\nPeople and Culture Team", "needs_human_review": false}
+  result: Draft saved to week-04/drafts/ridgeline-hotels/03-brittany-honeymoon-20261109-155925.txt. It has not been sent.
+
+Claude: I've drafted a reply to Brittany explaining that she has 4 PTO days remaining (2 short of the 6 she needs), and outlined her options per the PTO Policy — borrowing up to 3 additional PTO days (with GM approval, requested 30+ days ahead) or combining PTO with unpaid days. I also noted the advance-approval requirement for 5+ consecutive days and flagged checking blackout dates with her supervisor. The draft has been saved for HR review.
+
+------------------------------------------------------------
+Stopped: Claude replied without requesting a tool (stop_reason: end_turn).
+------------------------------------------------------------
+Draft file: week-04/drafts/ridgeline-hotels/03-brittany-honeymoon-20261109-155925.txt
+DRAFT
+Hi Brittany,
+
+Congratulations on your upcoming wedding! 🎉
+
+I checked your balance, and you currently have 4 PTO days remaining, which is 2 short of the 6 days you'd like to take for your honeymoon.
+
+The good news is you have a couple of options:
+
+1. **Borrow PTO**: Per our PTO Policy (pto-policy.html), if a planned absence is longer than your current balance, you can borrow up to 3 PTO days from what you'll earn in the next six months. This would easily cover the extra 2 days you need. Borrowed days require your general manager's approval, and the request must be submitted at least 30 days in advance. Keep in mind that if you were to leave Ridgeline before earning those days back, their value would be deducted from your final paycheck.
+
+2. **Mix PTO with unpaid days**, if you'd rather not borrow against future PTO — just let your supervisor know your preference when you submit the request.
+
+Since you're requesting 6 consecutive days, you'll need your supervisor Amanda Ross's approval at least 30 days ahead of your travel dates (per the "Requesting PTO" section of the same policy), plus your general manager's sign-off if you choose to borrow days or if any blackout dates are involved. Since your honeymoon is about two months out, you have plenty of time to submit the request through the scheduling system.
+
+Please also check with Amanda on any blackout dates at Ridgeline Taos that might affect approval timing.
+
+Congratulations again, and let us know if you have any other questions!
+
+Best,
+People and Culture Team
+Needs human review: false
+
+Tool calls: 4
+Tokens: 10669 input, 1120 output

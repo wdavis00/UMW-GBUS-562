@@ -1,0 +1,35 @@
+Sender:  Logan Brooks <logan.brooks@ridgelinehotels.example>
+Subject: Days off
+Email:   07-logan-seasonal.eml
+Org:     ridgeline-hotels
+Model:   claude-sonnet-5
+
+Tools offered: search_policy, get_leave_balance, save_reply
+
+Step 1: get_leave_balance
+  inputs: {}
+  result (error): Error executing tool get_leave_balance: No employee record matches 'logan.brooks@ridgelinehotels.example'. Do not state, estimate, or guess any leave balance for this person. Say that their leave balance could not be found and that a person from HR will follow up.
+
+Step 2: save_reply
+  inputs: {"reply_text": "Hi Logan,\n\nThanks for reaching out, and welcome to the team!\n\nI wasn't able to locate your current leave balance in our system under this email address, so I don't want to give you an inaccurate number. I've flagged this for our People and Culture team, and someone will follow up with you directly to confirm your PTO balance.\n\nThanks for your patience,\nHR Team", "needs_human_review": true}
+  result: Draft saved to week-04/drafts/ridgeline-hotels/07-logan-seasonal-20261109-162335.txt. It has not been sent.
+
+Claude: I've prepared the reply. Since Logan's record couldn't be found in the system, I let him know HR will follow up directly with his accurate PTO balance, and flagged the draft for human review.
+
+------------------------------------------------------------
+Stopped: Claude replied without requesting a tool (stop_reason: end_turn).
+------------------------------------------------------------
+Draft file: week-04/drafts/ridgeline-hotels/07-logan-seasonal-20261109-162335.txt
+DRAFT
+Hi Logan,
+
+Thanks for reaching out, and welcome to the team!
+
+I wasn't able to locate your current leave balance in our system under this email address, so I don't want to give you an inaccurate number. I've flagged this for our People and Culture team, and someone will follow up with you directly to confirm your PTO balance.
+
+Thanks for your patience,
+HR Team
+Needs human review: true
+
+Tool calls: 2
+Tokens: 4922 input, 303 output

@@ -1,0 +1,22 @@
+DRAFT - NOT SENT
+To: danielle.price@ridgelinehotels.example
+Subject: [NEEDS HR REVIEW] Re: A guest
+Needs human review: true
+Source email: 06-danielle-guest.eml
+Drafted: 2026-11-09T16:20:44 by claude-sonnet-5
+------------------------------------------------------------
+
+[NEEDS HR REVIEW]
+WARNING: This draft was prepared by the HR assistant and must be reviewed by a person from HR before it is sent. Delete this warning before sending.
+------------------------------------------------------------
+
+Hi Danielle,
+
+Thank you for telling us about this, and I'm really sorry you're going through it. What you're describing is serious, and you shouldn't have to just "avoid the room" or feel uncomfortable at work.
+
+I'm flagging this right away so that someone from our People and Culture team can follow up with you directly and make sure this is addressed properly. They will be in touch with you very soon.
+
+Thank you for your patience, and please don't hesitate to reach out in the meantime if anything else comes up.
+
+Take care,
+HR Assistant

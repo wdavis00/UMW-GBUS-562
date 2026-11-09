@@ -1,0 +1,20 @@
+DRAFT - NOT SENT
+To: logan.brooks@ridgelinehotels.example
+Subject: [NEEDS HR REVIEW] Re: Days off
+Needs human review: true
+Source email: 07-logan-seasonal.eml
+Drafted: 2026-11-09T16:23:35 by claude-sonnet-5
+------------------------------------------------------------
+
+[NEEDS HR REVIEW]
+WARNING: This draft was prepared by the HR assistant and must be reviewed by a person from HR before it is sent. Delete this warning before sending.
+------------------------------------------------------------
+
+Hi Logan,
+
+Thanks for reaching out, and welcome to the team!
+
+I wasn't able to locate your current leave balance in our system under this email address, so I don't want to give you an inaccurate number. I've flagged this for our People and Culture team, and someone will follow up with you directly to confirm your PTO balance.
+
+Thanks for your patience,
+HR Team
