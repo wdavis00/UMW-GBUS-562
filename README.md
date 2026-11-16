@@ -13,3 +13,5 @@ This repository contains materials created for GBUS 562: AI Language Models at t
    - A RAG tool that answers questions from Copperline Manufacturing's finance documents, built with Claude Code. Source documents are in [copperline-docs](week-03/copperline-docs/).
 4. [week-04](week-04/)
    - Week 4: an AI agent that prepares replies to HR emails using tools from an MCP server, built with Claude Code. Source materials are in [hartwell-hr](week-04/hartwell-hr/).
+5. [week-05](week-05/)
+   - Week 5: a team of AI agents that prepares a bicycle maker's response to supplier emails, built with Claude Code. Source materials are in [brookfield-bikes](week-05/brookfield-bikes/).
