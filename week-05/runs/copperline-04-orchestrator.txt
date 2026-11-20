@@ -1,0 +1,88 @@
+Company folder: /Users/wdavis/Library/CloudStorage/OneDrive-Personal/School/UMW-MS in AI in Business/GBUS-562/UMW-GBUS-562/week-05/copperline-coffee
+Columns found from each header row:
+  parts.csv: part_id=part_id, description=description, on_hand=on_hand, supplier=supplier
+  inbound.csv: po_number=po_number, part_id=part_id, supplier=supplier, qty=qty, arrives_in_days=arrives_in_days
+  bill-of-materials.csv: product=product, part_id=part_id, per_unit=per_unit
+  orders.csv: order_id=order_id, customer=customer, contact_email=contact_email, product=product, qty=units, ship_day=ship_by_day, late_penalty=late_penalty
+  suppliers.csv: supplier=supplier, contact_name=contact_name, contact_email=contact_email, part_id=part_id
+Email: week-05/copperline-coffee/supplier-emails/04-pelham-maintenance-closure.eml
+Model: claude-sonnet-5
+  [tokens] orchestrator: +1409 in / +133 out (total 1409 in / 133 out over 1 call(s))
+
+>>> CHOICE 1/10: run_supply_analyst
+
+----- HANDOFF coordinator -> analyst (supplier email) -----
+From: Owen Brady <o.brady@pelhamfittings.example>
+To: Purchasing <purchasing@copperlinecoffee.example>
+Subject: Plant maintenance closure - PO-5540 not affected
+
+Hello,
+
+A quick note for your planning: our plant will close for one week of annual
+maintenance, starting four weeks from today.
+
+Your open order, PO-5540 for 60 SW-3 steam wands, ships before the closure
+and will arrive on the scheduled date. No action is needed on your side.
+
+Kind regards,
+Owen Brady
+Customer Care, Pelham Fittings
+-----------------------------------------------------------
+  [tokens] analyst: +2021 in / +211 out (total 2021 in / 211 out over 1 call(s))
+  analyst tool call 1/10: get_part {"part_id": "SW-3"}
+  analyst tool call 2/10: get_orders_for_part {"part_id": "SW-3"}
+  [tokens] analyst: +2901 in / +175 out (total 4922 in / 386 out over 2 call(s))
+  analyst tool call 3/10: check_coverage {"part_id": "SW-3", "arrivals": [{"qty": 60, "arrives_in_days": 11}]}
+  [tokens] analyst: +3554 in / +139 out (total 8476 in / 525 out over 3 call(s))
+  analyst used 3 tool call(s).
+
+----- HANDOFF analyst -> coordinator (the analyst's full brief) -----
+{
+  "part_id": "SW-3",
+  "what_changed": "No change: PO-5540 (60 units) still arrives on day 11 as originally scheduled, unaffected by the supplier's one-week plant maintenance closure starting in 28 days.",
+  "orders_at_risk": [],
+  "options": [],
+  "decisions_for_a_person": [],
+  "supplier_questions": []
+}
+---------------------------------------------------------------------
+  [tokens] orchestrator: +1665 in / +261 out (total 3074 in / 394 out over 2 call(s))
+
+Orchestrator: No orders are at risk, and the analyst confirms PO-5540 ships and arrives on schedule, unaffected by Pelham Fittings' upcoming maintenance closure. No supplier reply or customer notice is needed for this routine FYI.
+
+>>> CHOICE 2/10: finish
+    (error) finish needs summary (text) and person_must_decide (true or false).
+  [tokens] orchestrator: +1955 in / +177 out (total 5029 in / 571 out over 3 call(s))
+
+>>> CHOICE 3/10: finish
+    (error) finish needs summary (text) and person_must_decide (true or false).
+  [tokens] orchestrator: +2164 in / +230 out (total 7193 in / 801 out over 4 call(s))
+
+>>> CHOICE 4/10: finish
+
+============================================================
+ORCHESTRATOR'S RESULT
+============================================================
+Tool calls: 4 of 10
+Person must decide: no
+Summary for a person:
+Pelham Fittings sent an FYI about a one week plant maintenance closure starting in 4 weeks. They confirmed PO-5540 (60 SW-3 steam wands) ships before the closure and arrives on schedule, unaffected. The supply analyst confirmed no orders are at risk. No reply or customer notice is needed; this is informational only.
+
+============================================================
+SUMMARY
+============================================================
+Part: SW-3
+What changed: No change: PO-5540 (60 units) still arrives on day 11 as originally scheduled, unaffected by the supplier's one-week plant maintenance closure starting in 28 days.
+
+Drafts saved: 0
+
+Drafts marked for a person: 0
+
+Decisions for a person: 0
+
+=== Tokens by specialist ===
+  orchestrator       4 call(s)      7193 in      801 out
+  analyst            3 call(s)      8476 in      525 out
+  TOTAL                            15669 in     1326 out
+
+Total tokens: 16995 (15669 in / 1326 out)

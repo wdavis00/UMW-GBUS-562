@@ -6,12 +6,16 @@ For one supplier email it runs, always in this order:
   2. a customer notice for each order at risk (skipped if there are none);
   3. a reply to the supplier.
 Every draft goes through the review step (writer -> reviewer, at most 2 revisions, name
-checks, saved to week-05/drafts). At the end it prints a summary: drafts saved, drafts
-marked for a person, decisions for a person, and total tokens.
+checks, saved to week-05/drafts/<company folder>). At the end it prints a summary: drafts
+saved, drafts marked for a person, decisions for a person, and total tokens.
+
+--org names the company folder (CSV files + prompts/); without it, week-05/brookfield-bikes.
 
 Usage (from the repo root):
   .venv/bin/python week-05/pipeline.py --email week-05/brookfield-bikes/supplier-emails/01-northgate-controller-delay.eml
-  .venv/bin/python week-05/pipeline.py --email <path> --save week-05/runs/northgate.txt
+  .venv/bin/python week-05/pipeline.py --org week-05/copperline-coffee \
+      --email week-05/copperline-coffee/supplier-emails/01-danforth-pump-delay.eml \
+      --save week-05/runs/copperline-01-pipeline.txt
 
 --save also writes everything printed to the named text file (UTF-8).
 """
@@ -41,7 +45,8 @@ class Tee:
         self.file.flush()
 
 
-def run_pipeline(email_path: Path) -> None:
+def run_pipeline(email_path: Path, org: Path | None = None) -> None:
+    sp.set_org(org)
     email = email_path.read_text(encoding="utf-8")
     print(f"Email: {email_path}")
     print(f"Model: {sp.MODEL}")
@@ -100,7 +105,10 @@ def print_summary(brief: dict | None, results: list[dict]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run Brookfield's specialists on one supplier email.")
+    parser = argparse.ArgumentParser(description="Run a company's specialists on one supplier email.")
+    parser.add_argument("--org", type=Path, metavar="FOLDER",
+                        help="company folder with the CSV files and prompts/ "
+                             "(default: week-05/brookfield-bikes)")
     parser.add_argument("--email", required=True, type=Path, help="path of one supplier email")
     parser.add_argument("--save", type=Path, metavar="FILE",
                         help="also write everything printed to this text file (UTF-8)")
@@ -109,7 +117,7 @@ def main() -> None:
         raise SystemExit(f"Email not found: {args.email}")
 
     if not args.save:
-        run_pipeline(args.email)
+        run_pipeline(args.email, args.org)
         return
 
     args.save.parent.mkdir(parents=True, exist_ok=True)
@@ -117,7 +125,7 @@ def main() -> None:
         original = sys.stdout
         sys.stdout = Tee(original, f)
         try:
-            run_pipeline(args.email)
+            run_pipeline(args.email, args.org)
         finally:
             sys.stdout = original
     print(f"\nSaved output to {args.save}")

@@ -1,0 +1,92 @@
+Company folder: /Users/wdavis/Library/CloudStorage/OneDrive-Personal/School/UMW-MS in AI in Business/GBUS-562/UMW-GBUS-562/week-05/copperline-coffee
+Columns found from each header row:
+  parts.csv: part_id=part_id, description=description, on_hand=on_hand, supplier=supplier
+  inbound.csv: po_number=po_number, part_id=part_id, supplier=supplier, qty=qty, arrives_in_days=arrives_in_days
+  bill-of-materials.csv: product=product, part_id=part_id, per_unit=per_unit
+  orders.csv: order_id=order_id, customer=customer, contact_email=contact_email, product=product, qty=units, ship_day=ship_by_day, late_penalty=late_penalty
+  suppliers.csv: supplier=supplier, contact_name=contact_name, contact_email=contact_email, part_id=part_id
+Email: week-05/copperline-coffee/supplier-emails/04-pelham-maintenance-closure.eml
+Model: claude-sonnet-5
+
+=== Step 1: supply analyst ===
+
+----- HANDOFF coordinator -> analyst (supplier email) -----
+From: Owen Brady <o.brady@pelhamfittings.example>
+To: Purchasing <purchasing@copperlinecoffee.example>
+Subject: Plant maintenance closure - PO-5540 not affected
+
+Hello,
+
+A quick note for your planning: our plant will close for one week of annual
+maintenance, starting four weeks from today.
+
+Your open order, PO-5540 for 60 SW-3 steam wands, ships before the closure
+and will arrive on the scheduled date. No action is needed on your side.
+
+Kind regards,
+Owen Brady
+Customer Care, Pelham Fittings
+-----------------------------------------------------------
+  [tokens] analyst: +2021 in / +200 out (total 2021 in / 200 out over 1 call(s))
+  analyst tool call 1/10: get_part {"part_id": "SW-3"}
+  analyst tool call 2/10: get_orders_for_part {"part_id": "SW-3"}
+  [tokens] analyst: +2890 in / +157 out (total 4911 in / 357 out over 2 call(s))
+  analyst tool call 3/10: check_coverage {"part_id": "SW-3", "arrivals": [{"qty": 60, "arrives_in_days": 11}]}
+  [tokens] analyst: +3525 in / +134 out (total 8436 in / 491 out over 3 call(s))
+  analyst used 3 tool call(s).
+
+----- HANDOFF analyst -> coordinator (the analyst's full brief) -----
+{
+  "part_id": "SW-3",
+  "what_changed": "No change to supply: PO-5540 (60 units) still arrives on day 11, as originally scheduled, before the supplier's one-week maintenance closure starting day 28.",
+  "orders_at_risk": [],
+  "options": [],
+  "decisions_for_a_person": [],
+  "supplier_questions": []
+}
+---------------------------------------------------------------------
+
+=== Step 2: customer notices ===
+No orders at risk; skipping customer notices.
+
+=== Step 3: supplier reply ===
+
+----- HANDOFF coordinator -> supplier-writer (brief, customer names removed) -----
+{
+  "part_id": "SW-3",
+  "what_changed": "No change to supply: PO-5540 (60 units) still arrives on day 11, as originally scheduled, before the supplier's one-week maintenance closure starting day 28.",
+  "orders_at_risk": [],
+  "options": [],
+  "decisions_for_a_person": [],
+  "supplier_questions": []
+}
+----------------------------------------------------------------------------------
+  [tokens] supplier-writer: +648 in / +13 out (total 648 in / 13 out over 1 call(s))
+
+FINAL DRAFT TO SUPPLIER
+NO REPLY NEEDED
+Marked for a person: no
+
+----- HANDOFF supplier-writer -> coordinator (nothing saved) -----
+NO REPLY NEEDED
+------------------------------------------------------------------
+
+============================================================
+SUMMARY
+============================================================
+Part: SW-3
+What changed: No change to supply: PO-5540 (60 units) still arrives on day 11, as originally scheduled, before the supplier's one-week maintenance closure starting day 28.
+
+Drafts saved: 0
+  (supplier reply: NO REPLY NEEDED, nothing saved)
+
+Drafts marked for a person: 0
+
+Decisions for a person: 0
+
+=== Tokens by specialist ===
+  analyst            3 call(s)      8436 in      491 out
+  supplier-writer    1 call(s)       648 in       13 out
+  TOTAL                             9084 in      504 out
+
+Total tokens: 9588 (9084 in / 504 out)

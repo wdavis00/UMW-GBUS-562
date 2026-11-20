@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """orchestrator.py - Claude decides which specialists to use for one supplier email.
 
-An agent (claude-sonnet-5) with the system prompt in brookfield-bikes/prompts/orchestrator.txt
+An agent (claude-sonnet-5) with the system prompt in <company folder>/prompts/orchestrator.txt
 gets four tools:
   run_supply_analyst     runs the supply analyst on the email; returns its brief
   draft_supplier_reply   drafts, reviews, and saves a reply to the supplier (needs the brief)
@@ -9,12 +9,16 @@ gets four tools:
   finish                 ends the job with a summary for a person, and whether a person must
                          make a decision
 The drafting tools run the same review step as pipeline.py (writer -> reviewer, at most 2
-revisions, name checks, saved to week-05/drafts). The agent stops after 10 tool calls.
-Each choice it makes is printed, then the same summary as pipeline.py.
+revisions, name checks, saved to week-05/drafts/<company folder>). The agent stops after
+10 tool calls. Each choice it makes is printed, then the same summary as pipeline.py.
+
+--org names the company folder (CSV files + prompts/); without it, week-05/brookfield-bikes.
 
 Usage (from the repo root):
   .venv/bin/python week-05/orchestrator.py --email week-05/brookfield-bikes/supplier-emails/02-kendall-tire-options.eml
-  .venv/bin/python week-05/orchestrator.py --email <path> --save week-05/runs/kendall-orchestrator.txt
+  .venv/bin/python week-05/orchestrator.py --org week-05/copperline-coffee \
+      --email week-05/copperline-coffee/supplier-emails/01-danforth-pump-delay.eml \
+      --save week-05/runs/copperline-01-orchestrator.txt
 
 --save also writes everything printed to the named text file (UTF-8).
 """
@@ -62,7 +66,7 @@ TOOLS = [
     },
     {
         "name": "finish",
-        "description": ("End the job. Give a short summary for Brookfield's purchasing manager "
+        "description": ("End the job. Give a short summary for the company's purchasing manager "
                         "and say whether a person must make a decision."),
         "input_schema": {
             "type": "object",
@@ -89,7 +93,8 @@ def draft_result_for_agent(r: dict) -> dict:
     return out
 
 
-def run_orchestrator(email_path: Path) -> None:
+def run_orchestrator(email_path: Path, org: Path | None = None) -> None:
+    sp.set_org(org)
     email = email_path.read_text(encoding="utf-8")
     print(f"Email: {email_path}")
     print(f"Model: {sp.MODEL}")
@@ -201,7 +206,10 @@ def run_orchestrator(email_path: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Let Claude choose Brookfield's specialists for one supplier email.")
+        description="Let Claude choose a company's specialists for one supplier email.")
+    parser.add_argument("--org", type=Path, metavar="FOLDER",
+                        help="company folder with the CSV files and prompts/ "
+                             "(default: week-05/brookfield-bikes)")
     parser.add_argument("--email", required=True, type=Path, help="path of one supplier email")
     parser.add_argument("--save", type=Path, metavar="FILE",
                         help="also write everything printed to this text file (UTF-8)")
@@ -210,7 +218,7 @@ def main() -> None:
         raise SystemExit(f"Email not found: {args.email}")
 
     if not args.save:
-        run_orchestrator(args.email)
+        run_orchestrator(args.email, args.org)
         return
 
     args.save.parent.mkdir(parents=True, exist_ok=True)
@@ -218,7 +226,7 @@ def main() -> None:
         original = sys.stdout
         sys.stdout = Tee(original, f)
         try:
-            run_orchestrator(args.email)
+            run_orchestrator(args.email, args.org)
         finally:
             sys.stdout = original
     print(f"\nSaved output to {args.save}")

@@ -1,0 +1,136 @@
+Company folder: /Users/wdavis/Library/CloudStorage/OneDrive-Personal/School/UMW-MS in AI in Business/GBUS-562/UMW-GBUS-562/week-05/copperline-coffee
+Columns found from each header row:
+  parts.csv: part_id=part_id, description=description, on_hand=on_hand, supplier=supplier
+  inbound.csv: po_number=po_number, part_id=part_id, supplier=supplier, qty=qty, arrives_in_days=arrives_in_days
+  bill-of-materials.csv: product=product, part_id=part_id, per_unit=per_unit
+  orders.csv: order_id=order_id, customer=customer, contact_email=contact_email, product=product, qty=units, ship_day=ship_by_day, late_penalty=late_penalty
+  suppliers.csv: supplier=supplier, contact_name=contact_name, contact_email=contact_email, part_id=part_id
+Email: week-05/copperline-coffee/supplier-emails/03-ashgrove-burr-delay.eml
+Model: claude-sonnet-5
+
+=== Step 1: supply analyst ===
+
+----- HANDOFF coordinator -> analyst (supplier email) -----
+From: Priya Raman <p.raman@ashgroveprecision.example>
+To: Purchasing <purchasing@copperlinecoffee.example>
+Subject: PO-5531 - BR-64 burr sets - arriving 3 days late
+
+Hello,
+
+A heat-treatment furnace at our plant needed an unplanned repair, so PO-5531
+for 120 BR-64 burr sets will arrive 3 days after the scheduled date. The full
+quantity will ship together.
+
+Please let me know if this causes any problems on your side.
+
+Best,
+Priya Raman
+Order Management, Ashgrove Precision
+-----------------------------------------------------------
+  [tokens] analyst: +2023 in / +142 out (total 2023 in / 142 out over 1 call(s))
+  analyst tool call 1/10: get_part {"part_id": "BR-64"}
+  analyst tool call 2/10: get_orders_for_part {"part_id": "BR-64"}
+  [tokens] analyst: +2834 in / +478 out (total 4857 in / 620 out over 2 call(s))
+  analyst tool call 3/10: check_coverage {"part_id": "BR-64", "arrivals": [{"qty": 120, "arrives_in_days": 13}]}
+  [tokens] analyst: +3785 in / +149 out (total 8642 in / 769 out over 3 call(s))
+  analyst used 3 tool call(s).
+
+----- HANDOFF analyst -> coordinator (the analyst's full brief) -----
+{
+  "part_id": "BR-64",
+  "what_changed": "PO-5531 for 120 BR-64 burr sets, originally due in 10 days, will now arrive in 13 days from today.",
+  "orders_at_risk": [],
+  "options": [],
+  "decisions_for_a_person": [],
+  "supplier_questions": [
+    "Let them know whether the 3-day delay causes any problems on Copperline's side."
+  ]
+}
+---------------------------------------------------------------------
+
+=== Step 2: customer notices ===
+No orders at risk; skipping customer notices.
+
+=== Step 3: supplier reply ===
+
+----- HANDOFF coordinator -> supplier-writer (brief, customer names removed) -----
+{
+  "part_id": "BR-64",
+  "what_changed": "PO-5531 for 120 BR-64 burr sets, originally due in 10 days, will now arrive in 13 days from today.",
+  "orders_at_risk": [],
+  "options": [],
+  "decisions_for_a_person": [],
+  "supplier_questions": [
+    "Let them know whether the 3-day delay causes any problems on Copperline's side."
+  ]
+}
+----------------------------------------------------------------------------------
+  [tokens] supplier-writer: +670 in / +209 out (total 670 in / 209 out over 1 call(s))
+
+----- HANDOFF supplier-writer -> reviewer (draft 1) -----
+Subject: Re: PO-5531 - BR-64 burr sets - arriving 3 days late
+
+Hello Priya,
+
+Thanks for the update. To confirm: PO-5531 for 120 BR-64 burr sets, originally due in 10 days, will now arrive in 13 days, shipping as a single full-quantity shipment.
+
+Based on our current schedule, this does not put any orders at risk on our side.
+
+If there's any way to ship even part of the quantity sooner, that would help build in some buffer, but it's not required.
+
+Thanks for the heads-up and for keeping us informed.
+
+Purchasing, Copperline Coffee Machines
+---------------------------------------------------------
+  [tokens] reviewer: +931 in / +479 out (total 931 in / 479 out over 1 call(s))
+
+----- HANDOFF reviewer -> review step (verdict) -----
+APPROVE
+-----------------------------------------------------
+
+FINAL DRAFT TO SUPPLIER
+Subject: Re: PO-5531 - BR-64 burr sets - arriving 3 days late
+
+Hello Priya,
+
+Thanks for the update. To confirm: PO-5531 for 120 BR-64 burr sets, originally due in 10 days, will now arrive in 13 days, shipping as a single full-quantity shipment.
+
+Based on our current schedule, this does not put any orders at risk on our side.
+
+If there's any way to ship even part of the quantity sooner, that would help build in some buffer, but it's not required.
+
+Thanks for the heads-up and for keeping us informed.
+
+Purchasing, Copperline Coffee Machines
+Marked for a person: no
+
+----- HANDOFF review step -> coordinator (saved draft) -----
+{
+  "kind": "supplier",
+  "part_id": "BR-64",
+  "needs_person": false,
+  "flags": [],
+  "path": "/Users/wdavis/Library/CloudStorage/OneDrive-Personal/School/UMW-MS in AI in Business/GBUS-562/UMW-GBUS-562/week-05/drafts/copperline-coffee/20261120-095343-supplier-BR-64.md"
+}
+------------------------------------------------------------
+
+============================================================
+SUMMARY
+============================================================
+Part: BR-64
+What changed: PO-5531 for 120 BR-64 burr sets, originally due in 10 days, will now arrive in 13 days from today.
+
+Drafts saved: 1
+  - supplier BR-64: /Users/wdavis/Library/CloudStorage/OneDrive-Personal/School/UMW-MS in AI in Business/GBUS-562/UMW-GBUS-562/week-05/drafts/copperline-coffee/20261120-095343-supplier-BR-64.md
+
+Drafts marked for a person: 0
+
+Decisions for a person: 0
+
+=== Tokens by specialist ===
+  analyst            3 call(s)      8642 in      769 out
+  supplier-writer    1 call(s)       670 in      209 out
+  reviewer           1 call(s)       931 in      479 out
+  TOTAL                            10243 in     1457 out
+
+Total tokens: 11700 (10243 in / 1457 out)
