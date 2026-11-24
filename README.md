@@ -15,3 +15,6 @@ This repository contains materials created for GBUS 562: AI Language Models at t
    - Week 4: an AI agent that prepares replies to HR emails using tools from an MCP server, built with Claude Code. Source materials are in [hartwell-hr](week-04/hartwell-hr/).
 5. [week-05](week-05/)
    - Week 5: a team of AI agents that prepares a bicycle maker's response to supplier emails, built with Claude Code. Source materials are in [brookfield-bikes](week-05/brookfield-bikes/).
+6. [week-06](week-06/)
+   - Week 6: an evaluation and a code guardrail for the first version of my [capstone](capstone/), an AI problem-framing tool, built with Claude Code. Includes the [test cases](week-06/test-cases.csv), the [evaluation program](week-06/capstone_evaluate.py), and the [saved runs](week-06/runs/).
+   - The optional lecture exercise, a service desk assistant, is in [assistant.py](week-06/assistant.py), with source materials in [alder-creek](week-06/alder-creek/).

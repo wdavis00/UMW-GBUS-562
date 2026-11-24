@@ -1,0 +1,10 @@
+T1 PASS
+T2 PASS
+T3 PASS
+T4 PASS
+T5 FAIL: judge_2 NO: Reviewer says the day-shift observation “replaces the original belief” about the night shift, rather than preserving both as unresolved.
+T6 PASS
+T7 PASS
+T8 PASS
+T9 PASS
+Passed: 8 of 9

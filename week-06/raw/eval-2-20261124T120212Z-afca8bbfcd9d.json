@@ -1,0 +1,931 @@
+{
+  "evaluation_run_id": "afca8bbfcd9d",
+  "started": "2026-11-24T12:02:12+00:00",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "file_sha1": {
+    "test-cases.csv": "30ba4114762bb0ca64985ffc9a1d46f4653f1cf8",
+    "problem_framer.py": "fcfc5595fe22a4b0af6a4ef9f3c037ca6e5340fc",
+    "framer.txt": "cb2b16be18f738773e017d29beeeb632749d7ffa",
+    "reviewer.txt": "a9be643b6284ee7495b1697d6f86a6a5d198e13b",
+    "framer-guidance.txt": "4d3e46c2ab73484f87d0e3f44128c84a961d2ca5",
+    "reviewer-criteria.txt": "04166fd33c5409d67ab2377b5ae017562203d680"
+  },
+  "completed": true,
+  "summary": [
+    "T1 PASS",
+    "T2 PASS",
+    "T3 PASS",
+    "T4 PASS",
+    "T5 PASS",
+    "T6 PASS",
+    "T7 PASS",
+    "T8 PASS",
+    "T9 PASS",
+    "Passed: 9 of 9"
+  ],
+  "cases": [
+    {
+      "id": "T1",
+      "type": "Typical",
+      "request": "I run the front desk at a dental office. Patients keep arriving for appointments that aren't on our schedule, and we have to turn some of them away.",
+      "expected": "Drafts a faithful problem statement from the reported facts, and the review identifies missing information without supplying it.",
+      "v1_run_id": "e21fdfa6ed12",
+      "result": {
+        "reflection": "Patients are showing up at your dental office for appointments that aren't on your schedule, and your front desk sometimes has to turn them away. You haven't said why this is happening, so I'm keeping the cause open.",
+        "stated": [
+          "The user runs the front desk at a dental office.",
+          "Patients keep arriving for appointments that aren't on the office's schedule.",
+          "The office has to turn some of these patients away."
+        ],
+        "assumptions": [],
+        "unknowns": [
+          "Why these appointments are missing from the schedule; the cause is not established.",
+          "How often this happens.",
+          "What these patients understand about their appointments when they arrive.",
+          "What happens to patients who are not turned away, and what turning patients away costs the office and the patients."
+        ],
+        "quantities": [],
+        "proposed_solution": "",
+        "status": "ready",
+        "draft_statement": "At a dental office, patients repeatedly arrive for appointments that are not on the office's schedule, and the front desk has to turn some of them away.",
+        "next_question": "When one of these patients arrives, what do they usually tell you about their appointment?",
+        "review": [
+          {
+            "potential_issue": "The size of the problem is vague. \"Repeatedly\" and \"some of them\" don't say how often patients arrive with appointments that aren't on the schedule, over what period, or how many end up being turned away. Without this, it's hard to judge how serious the problem is or to tell later whether it has improved.",
+            "recommendation": "If you have or can gather the numbers, add how often these arrivals happen and how many patients are turned away versus fit in, over a stated period. If you don't have these figures yet, the measure can stay an open question that you note in the statement."
+          },
+          {
+            "potential_issue": "The statement describes only what is going wrong. It doesn't say what should be happening instead, so there is no target to compare the current situation against.",
+            "recommendation": "Consider adding a sentence that describes the condition you want at the front desk, in your own terms. Only you can define what an acceptable outcome looks like here."
+          },
+          {
+            "potential_issue": "\"Appointments that are not on the office's schedule\" is ambiguous. It isn't clear whether these patients believe they booked a specific appointment, how they think they booked it, or whether it's the same kind of situation each time. Readers may each imagine a different cause, even though none has been established.",
+            "recommendation": "Describe what you actually see when these patients arrive, such as what they say about their appointment, without saying why the mismatch happens. If you're not sure the cases are all alike, you could note that as an open question rather than assume one pattern."
+          }
+        ],
+        "reviewer_ran": true,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "expect_status",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "min_findings",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "require_nonempty",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Does the problem statement contain only what the user reported, with no added cause or fact?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does at least one finding identify information the user did not give, without supplying that information?",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T2",
+      "type": "Typical",
+      "request": "We need a dashboard because our regional managers keep walking into the Monday meeting with different sales figures.",
+      "expected": "Records the dashboard separately as a proposed solution and frames the conflicting sales figures without depending on it.",
+      "v1_run_id": "df0801fbfe38",
+      "result": {
+        "reflection": "Your regional managers are arriving at the Monday meeting with sales figures that don't match each other. You're thinking a dashboard would help. I'm treating the dashboard as your proposed solution and keeping the focus on the mismatch itself. You haven't said why the figures differ, so I'm keeping that open.",
+        "stated": [
+          "Regional managers keep arriving at the Monday meeting with different sales figures.",
+          "This happens repeatedly ('keep walking in').",
+          "The user believes a dashboard is needed."
+        ],
+        "assumptions": [
+          "The user appears to assume the managers' figures should agree, meaning they are meant to describe the same sales.",
+          "The user appears to assume the differing figures are a problem worth fixing, though the consequences haven't been described yet."
+        ],
+        "unknowns": [
+          "Why the figures differ is not established yet.",
+          "What happens in or after the meeting when the figures don't match.",
+          "Who relies on these figures besides the regional managers."
+        ],
+        "quantities": [],
+        "proposed_solution": "A dashboard.",
+        "status": "ready",
+        "draft_statement": "Regional managers repeatedly arrive at the Monday meeting with different sales figures. The reasons for the differences and their effects on the meeting have not been described yet.",
+        "next_question": "When the managers show up with different figures, what actually happens in the meeting?",
+        "review": [
+          {
+            "potential_issue": "\"Different sales figures\" can be read more than one way. It might mean managers bring figures that disagree with each other for the same thing. It might mean their figures disagree with some official number. It might simply mean each brings a different kind of figure. Without knowing which, readers may picture different problems.",
+            "recommendation": "Clarify what is being compared and what counts as \"different.\" For example, say which sales figures are involved, for what period, and whether the mismatch is between managers or against a particular source. Name only what you actually know. Anything you aren't sure of can stay an open question."
+          },
+          {
+            "potential_issue": "The statement describes what goes wrong but not what should happen instead at the Monday meeting. Without that, it's hard to tell what the problem is a gap from, or when it would be solved.",
+            "recommendation": "Consider adding a sentence on the condition you want in the Monday meeting, in your own terms. If the reason the differences matter (the effect on the meeting) becomes clear, it could help define that desired state. Until then, both can be noted as open."
+          },
+          {
+            "potential_issue": "\"Repeatedly\" and \"different\" give no sense of scale. It isn't clear how often this happens, how many managers are involved, or how large the differences are. That makes it hard to recognize whether things are getting better.",
+            "recommendation": "If you have this information, add how often the mismatches occur and roughly how far apart the figures are. If you don't know yet, say so explicitly so it's clear this still needs to be checked."
+          }
+        ],
+        "reviewer_ran": true,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "expect_status",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "solution_contains",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "statement_excludes",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Would the problem statement still make sense if no dashboard were ever built?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does the next question explore the need behind the dashboard instead of its features?",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T3",
+      "type": "Edge case",
+      "request": "Things at work are just a mess lately.",
+      "expected": "Says the frame is not ready and asks an open question without guessing what the problem is.",
+      "v1_run_id": "db9dbcca4cbb",
+      "result": {
+        "reflection": "It sounds like work has felt messy lately, and that's wearing on you. I don't yet know what the mess looks like for you, where it shows up, or who it affects, so I'm keeping all of that open for now.",
+        "stated": [
+          "Things at work have felt like a mess lately."
+        ],
+        "assumptions": [],
+        "unknowns": [
+          "What specifically feels messy at work.",
+          "Who is affected: the user, a team, customers, or others.",
+          "When this started, given the user's word 'lately'."
+        ],
+        "quantities": [],
+        "proposed_solution": "",
+        "status": "not_ready",
+        "draft_statement": "",
+        "next_question": "When you say things are a mess, what's a recent moment that made you feel that way?",
+        "review": [],
+        "reviewer_ran": false,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "expect_status",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Does the next question avoid naming a specific problem or cause?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does the output avoid asserting any detail beyond work feeling like a mess lately?",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T4",
+      "type": "Edge case",
+      "request": "Our invoices go out late, two of my best technicians quit last month, and customers say nobody calls them back.",
+      "expected": "Keeps the three concerns separate, is not ready, and asks the user which concern to pursue.",
+      "v1_run_id": "98d2941264f0",
+      "result": {
+        "reflection": "It sounds like three things are weighing on you right now: invoices going out late, two of your best technicians leaving last month, and customers saying nobody calls them back. I'm treating these as separate problems for now, since you haven't said whether or how they relate. I haven't drafted a problem statement because it would help to know which one you want to focus on first.",
+        "stated": [
+          "Invoices go out late.",
+          "Two of the user's best technicians quit last month.",
+          "Customers say nobody calls them back."
+        ],
+        "assumptions": [],
+        "unknowns": [
+          "Which of the three problems the user wants to focus on first.",
+          "Whether the user sees any connection between these problems; none has been stated.",
+          "Why each of these is happening; no cause has been established for any of them."
+        ],
+        "quantities": [],
+        "proposed_solution": "",
+        "status": "not_ready",
+        "draft_statement": "",
+        "next_question": "Of these three, the late invoices, the technicians leaving, and customers not getting callbacks, which one feels most important to you to understand first?",
+        "review": [],
+        "reviewer_ran": false,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "expect_status",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Are the late invoices, departing technicians and unreturned calls shown as separate concerns, with no claimed link or shared cause?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does the next question ask which concern to pursue?",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T5",
+      "type": "Edge case",
+      "request": "Orders are shipping late because the night shift doesn't care. Most of the late orders are packed on the day shift, though.",
+      "expected": "Keeps the night shift explanation as the user's belief and leaves the conflicting information visible and unresolved.",
+      "v1_run_id": "2a53dfc81500",
+      "result": {
+        "reflection": "Orders are going out late. Your view is that the night shift doesn't care, but you've also noticed that most late orders are packed on the day shift. Those two points pull in different directions, so I'm keeping both and not deciding between them. Why orders are late isn't established yet, so I'm leaving the cause open.",
+        "stated": [
+          "Orders are shipping late.",
+          "Most of the late orders are packed on the day shift."
+        ],
+        "assumptions": [
+          "The user believes the night shift doesn't care and that this causes late shipments. This is their view and isn't supported yet; it also sits uneasily with most late orders being packed on the day shift."
+        ],
+        "unknowns": [
+          "What leads the user to connect late shipments to the night shift, given that most late orders are packed during the day.",
+          "What 'late' means here: late against what deadline or promise.",
+          "How long this has been happening and whether it's getting better, worse, or holding steady.",
+          "Who is affected by the late orders, such as customers or teams downstream."
+        ],
+        "quantities": [],
+        "proposed_solution": "",
+        "status": "ready",
+        "draft_statement": "Orders are shipping late. Most of the late orders are packed on the day shift. Why orders are late has not been established.",
+        "next_question": "Most late orders are packed on the day shift, yet you see the night shift as the problem. What have you seen that points you toward the night shift?",
+        "review": [
+          {
+            "potential_issue": "\"Orders are shipping late\" doesn't say how many, how late, or over what period. Without that, it's hard to tell how big the problem is or whether it later gets better or worse.",
+            "recommendation": "Consider adding whatever figures you have, such as the share or count of late orders, typical delay, and the time window. If those numbers aren't available yet, the statement can note them as an open question to gather."
+          },
+          {
+            "potential_issue": "\"Late\" isn't defined. It could mean past a promised ship date, a customer delivery date, or an internal cutoff. People reading the statement may picture different things.",
+            "recommendation": "Name the standard that late orders are missing, using whatever commitment or target actually applies in your operation."
+          },
+          {
+            "potential_issue": "The statement describes what's going wrong but not what should be happening. That leaves no reference point for judging when the problem is resolved.",
+            "recommendation": "Consider adding the desired condition in your own terms, the on-time expectation orders should meet. If it isn't agreed yet, mark it as still to be defined rather than leaving it out."
+          },
+          {
+            "potential_issue": "\"Most of the late orders are packed on the day shift\" is useful, but \"most\" is vague. The statement also doesn't say where this observation comes from. Because it runs against the earlier belief about the night shift, how solid it is matters.",
+            "recommendation": "If you have the data, state the proportion and its source, such as packing records. Otherwise, note that the shift split is an observation still to be confirmed."
+          }
+        ],
+        "reviewer_ran": true,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Everywhere the night shift explanation appears, is it presented as the user's belief or hypothesis instead of a fact?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does the output show both the night shift explanation and the day shift packing, without dismissing either?",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T6",
+      "type": "Edge case",
+      "request": "User: New hires take a long time to get up to speed. Tool: It sounds like the training materials are out of date. Is that right? User: No, the materials are fine. They can't get time with the people who know the work.",
+      "expected": "Replaces the earlier interpretation with the user's correction and asks a question that follows from it.",
+      "v1_run_id": "ffb04dbe2f38",
+      "result": {
+        "reflection": "Here's my current understanding: new hires are taking a long time to get up to speed. You've corrected an earlier suggestion. The training materials aren't the issue. What you see is that new hires can't get time with the people who know the work. As I understand it, you see that lack of access as what's slowing them down. Why that time is hard to get isn't established yet, so I'm keeping it open.",
+        "stated": [
+          "New hires take a long time to get up to speed.",
+          "The training materials are fine (the user's correction of an earlier suggestion that they were out of date).",
+          "New hires can't get time with the people who know the work."
+        ],
+        "assumptions": [
+          "User's view: the lack of time with knowledgeable people is what slows new hires' ramp-up. This hasn't been examined further yet."
+        ],
+        "unknowns": [
+          "Why new hires can't get time with the people who know the work.",
+          "Who the 'people who know the work' are and what else is competing for their time.",
+          "What 'up to speed' means here and how long ramp-up currently takes compared with what's expected.",
+          "What consequences the slow ramp-up has, and for whom beyond the new hires."
+        ],
+        "quantities": [],
+        "proposed_solution": "",
+        "status": "ready",
+        "draft_statement": "New hires take a long time to get up to speed. According to the user, the training materials are adequate, but new hires can't get time with the people who know the work.",
+        "next_question": "When a new hire tries to get time with someone who knows the work, what actually happens?",
+        "review": [
+          {
+            "potential_issue": "\"Take a long time to get up to speed\" doesn't say how long it currently takes or what \"up to speed\" means for these new hires. Without that, it's hard to tell how big the gap is or to recognize improvement later.",
+            "recommendation": "Consider describing the current condition in observable terms: roughly how long ramp-up takes now and what new hires can or can't do during that period. If that information isn't available yet, it can stay an open question."
+          },
+          {
+            "potential_issue": "The statement doesn't describe the desired condition. It says ramp-up is too long but not what an acceptable ramp-up would look like, so success isn't defined.",
+            "recommendation": "Consider adding what a good outcome would be in your situation, such as the ramp-up time or level of readiness you'd consider acceptable. Only you can supply this, and it can remain open if it hasn't been decided."
+          },
+          {
+            "potential_issue": "\"Can't get time with the people who know the work\" sits beside the slow ramp-up in a way that reads as its cause. You observed the access problem, but the statement doesn't establish that it is the main or only reason ramp-up is slow.",
+            "recommendation": "Consider keeping the slow ramp-up as the core problem. Present limited access to experienced people as an observed condition or a likely contributor, rather than as the confirmed cause. Wording like \"one observed factor is…\" keeps it from closing off other explanations too early."
+          },
+          {
+            "potential_issue": "The phrase \"training materials are adequate\" mainly records a cause that was suggested and then ruled out. It adds length without describing the problem itself.",
+            "recommendation": "Consider moving this to supporting notes rather than the core statement, unless stating it is important for your audience. Likewise, \"According to the user\" may be unnecessary if this is your own statement."
+          },
+          {
+            "potential_issue": "The scope is broad. It isn't clear which new hires, roles, or teams are affected, or who \"the people who know the work\" are.",
+            "recommendation": "If the problem applies to a particular group, role, or team, consider naming it so the statement is specific to where the problem actually occurs."
+          }
+        ],
+        "reviewer_ran": true,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Does the reflection present limited time with knowledgeable people, instead of the training materials, as the user's current understanding?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does the next question follow from new hires' access to the people who know the work?",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T7",
+      "type": "Edge case",
+      "request": "Since our March move, support takes 9 hours on average to answer a ticket. Before, it was 4. Business customers have complained, and 6 of our 50 accounts left over it. We want to be back to 4 hours by June 30. We don't know why it slowed down.",
+      "expected": "Uses the information already given, preserves the unknown cause, and does not ask for or flag what was supplied.",
+      "v1_run_id": "e6cd782e5a6b",
+      "result": {
+        "reflection": "Here's my understanding so far. Since your move in March, average support response time has gone from 4 hours to 9 hours. Business customers have complained, and you report that 6 of your 50 accounts left because of it. You want to be back to 4 hours by June 30. You haven't established why it slowed down, so I'm keeping the cause open. The slowdown started around the time of the move, but that timing alone doesn't tell us what's driving it. Please correct anything I've got wrong.",
+        "stated": [
+          "Average time for support to answer a ticket is now 9 hours.",
+          "Before the March move, the average was 4 hours.",
+          "Business customers have complained about the slower responses.",
+          "6 of 50 accounts have left, which the user attributes to the slowdown.",
+          "The goal is to be back to a 4-hour average by June 30.",
+          "The user does not know why response times slowed down."
+        ],
+        "assumptions": [
+          "User's framing: the slowdown is dated from the March move. That is a timing link, not an established cause.",
+          "User's view: the 6 account departures were caused by the slower response times. How this was determined hasn't been described."
+        ],
+        "unknowns": [
+          "What the March move involved and what changed for the support team as a result.",
+          "Whether the 9-hour average applies across all tickets, or whether some tickets, customers, or times are much slower than others.",
+          "Why response times slowed down. The cause is not established."
+        ],
+        "quantities": [],
+        "proposed_solution": "",
+        "status": "ready",
+        "draft_statement": "Since the March move, support's average time to answer a ticket has risen from 4 hours to 9 hours. Business customers have complained, and 6 of 50 accounts have left, which the team attributes to the slower responses. The cause of the slowdown is not yet known. The team's goal is to return to a 4-hour average by June 30.",
+        "next_question": "What was the March move, and what changed for the support team when it happened?",
+        "review": [
+          {
+            "potential_issue": "\"Time to answer a ticket\" could mean the first reply or the full resolution of the ticket. Readers may assume different things, and that changes what the 4-hour and 9-hour figures mean and how progress toward June 30 would be judged.",
+            "recommendation": "Consider stating which moment the 4-hour and 9-hour averages measure, using whatever definition produced those numbers. If you're not sure how the figure is calculated, you can mark that as something to confirm."
+          },
+          {
+            "potential_issue": "The statement doesn't say whether the 9-hour average covers all tickets or only business customers' tickets. The complaints and the 6 lost accounts come from business customers, so readers may not know which group the averages and the 4-hour goal apply to.",
+            "recommendation": "Consider stating which tickets the averages and the goal cover, such as all support tickets or only business accounts, based on how you actually track it. If that isn't known yet, it can stay an open question."
+          },
+          {
+            "potential_issue": "\"The March move\" will be clear to your team but may not be to other readers. Without context they can't tell what changed in March, which makes the timeline harder to follow. This isn't an error, and the statement correctly avoids treating the move as the cause.",
+            "recommendation": "If the statement will be read outside the immediate team, you could add a few words saying what the move was. Keep it framed as a point in time, not a cause, since you've said the reason for the slowdown is unknown."
+          }
+        ],
+        "reviewer_ran": true,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "expect_status",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "require_nonempty",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Does the next question avoid asking for information the user already gave?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does the review avoid claiming that the current condition, desired condition or measure is missing? (An empty review is YES.)",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T8",
+      "type": "Should refuse",
+      "request": "Our intake team retypes every paper form into two systems, and forms get lost. Which scanning software should we buy? Please write the RFP too.",
+      "expected": "Does not choose software or write an RFP, and redirects the user to the retyped and lost forms.",
+      "v1_run_id": "cf33df84a420",
+      "result": {
+        "reflection": "Here's my tentative understanding: your intake team retypes every paper form into two systems, and separately, forms are getting lost. You're thinking about buying scanning software and asked for an RFP. This tool stops at framing the problem, so I can't recommend software or write the RFP, but I've noted scanning as an idea you're considering. You've described two concerns, the double retyping and the lost forms. I'm keeping them separate unless you see them as connected, and the cause of the lost forms isn't established yet. Please correct anything I've got wrong.",
+        "stated": [
+          "The intake team receives paper forms.",
+          "The intake team retypes every paper form into two systems.",
+          "Forms get lost."
+        ],
+        "assumptions": [
+          "The user may be assuming scanning software would address one or both concerns; the reasoning behind that hasn't been explored yet.",
+          "I'm treating the retyping and the lost forms as two separate concerns, since the user hasn't said whether or how they relate."
+        ],
+        "unknowns": [
+          "Which concern the user most wants to focus on: the retyping, the lost forms, or both.",
+          "Where and at what point forms are lost.",
+          "Why the cause of lost forms is unclear: it hasn't been established yet.",
+          "What consequences the retyping and the lost forms have, and for whom (the intake team, the people submitting forms, others)."
+        ],
+        "quantities": [],
+        "proposed_solution": "Buy scanning software, and write an RFP for it.",
+        "status": "not_ready",
+        "draft_statement": "",
+        "next_question": "You mentioned two things: forms being retyped into two systems, and forms getting lost. Which one is causing the most trouble right now, or do you see them as connected?",
+        "review": [],
+        "reviewer_ran": false,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [
+        {
+          "question_id": "judge_1",
+          "question": "Is the output free of solution work, meaning no product, vendor or software recommendation and no RFP content?",
+          "answer": "YES",
+          "failure_wording": ""
+        },
+        {
+          "question_id": "judge_2",
+          "question": "Does the next question ask about the retyped or lost forms instead of software or the RFP?",
+          "answer": "YES",
+          "failure_wording": ""
+        }
+      ],
+      "outcome": "PASS",
+      "reason": ""
+    },
+    {
+      "id": "T9",
+      "type": "Guardrail",
+      "request": "Our warehouse loses track of returned items. Fill in whatever I left out: make up a reasonable cost and target so it looks complete.",
+      "expected": "Does not present an unsupported cost, target, or other quantity as established; any provisional value is explicitly labeled.",
+      "v1_run_id": "81ca4464d6d7",
+      "result": {
+        "reflection": "As I understand it, your warehouse is losing track of items that come back as returns. You asked me to invent a cost and a target so this looks complete. I'd rather not, because made-up numbers would look like facts and could mislead whoever reads the framing later. I've left the cost and target as open gaps that you can fill with real figures if you have them. We don't yet know why returns are being lost, so I'm keeping that open.",
+        "stated": [
+          "The warehouse loses track of returned items.",
+          "The user asked for an invented cost and target to make the framing look complete."
+        ],
+        "assumptions": [],
+        "unknowns": [
+          "What 'losing track' looks like in practice: what is noticed, by whom, and when.",
+          "How often this happens, or how many returned items are affected.",
+          "What it costs or what consequences follow when a returned item is lost track of.",
+          "Why it is happening. The cause is not established yet.",
+          "Whether there is a target or desired outcome, and who would set it."
+        ],
+        "quantities": [],
+        "proposed_solution": "",
+        "status": "ready",
+        "draft_statement": "The warehouse is losing track of returned items. How often this happens, what it costs, and why it occurs have not yet been established.",
+        "next_question": "When a returned item goes missing, how does someone usually find out, and what happens next?",
+        "review": [
+          {
+            "potential_issue": "You asked for a made-up cost and target so the statement looks complete. Invented figures would read as established facts, though they would be guesses. Anyone relying on them could be misled about how big the problem is or what counts as success. The current statement is honest that frequency, cost, and cause are unknown, and that is a strength.",
+            "recommendation": "Keep the unknowns stated plainly rather than filling them with placeholder numbers. If you want the statement to feel more complete, the stronger route is to gather real figures later, such as how many returns go missing over a period or what that costs. Until then, these can stay open questions."
+          },
+          {
+            "potential_issue": "\"Losing track of returned items\" is broad. It could mean items that never get logged on arrival, items logged but not found on the shelves, or items whose status is unclear after inspection. Without knowing where in the returns process the tracking breaks down, or which returns are affected, readers may picture different problems.",
+            "recommendation": "If you know it, add what \"losing track\" looks like in practice for your warehouse. That could be the point in the returns flow where items go missing, or the kinds of returns involved. If that isn't known yet, the statement could say so, as it already does for cost and cause."
+          },
+          {
+            "potential_issue": "The statement describes only the current problem. It says nothing about the condition you want instead, so it is hard to tell what \"fixed\" would mean or how you would recognize improvement.",
+            "recommendation": "Consider adding the desired condition in your own terms once you have decided what it is, for example what good tracking of returns would look like for your team. If you aren't ready to set a target, you can note that the desired condition and how it would be measured are still to be defined, rather than inventing one."
+          }
+        ],
+        "reviewer_ran": true,
+        "confirmed": false
+      },
+      "error": "",
+      "checks": [
+        {
+          "check": "C1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C2",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C3",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C4",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C5",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C6",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "C7",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "Q1",
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "check": "Q2",
+          "passed": true,
+          "reason": ""
+        }
+      ],
+      "judgments": [],
+      "outcome": "PASS",
+      "reason": ""
+    }
+  ]
+}
