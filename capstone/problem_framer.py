@@ -27,6 +27,7 @@ repository's license, so their text is kept outside it.
 import argparse
 import hashlib
 import json
+import re
 import sys
 import time
 import uuid
@@ -52,6 +53,12 @@ GUIDANCE_FILES = {
     "framer": COURSE_DIR / "Week8" / "Mitre" / "framer-guidance.txt",
     "reviewer": COURSE_DIR / "Week8" / "Mitre" / "reviewer-criteria.txt",
 }
+
+# How a Reviewer finding is shown. The Framer's context leaves these out (see without_findings).
+FINDING_HEADING = "Potential issue: Consider revising"
+RECOMMENDATION_HEADING = "Recommendation to strengthen"
+SHOWN_FINDING = re.compile(rf"\n\n{FINDING_HEADING}\n[^\n]*\n{RECOMMENDATION_HEADING}\n[^\n]*(?=\n\n|\Z)")
+NEXT_SPEAKER = re.compile(r"\n\n(?=(?:User|Tool): )")
 
 BASES = ["derived", "estimate", "assumption", "hypothetical", "placeholder", "pending_validation"]
 TEXT = {"type": "string"}
@@ -242,6 +249,16 @@ def short_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
+def without_findings(conversation: str) -> str:
+    """Return the conversation without the Reviewer findings the tool showed.
+
+    Advice the user has not taken up in their own words is not information about the problem. Only
+    text labeled as the tool's is changed, so anything the user wrote or pasted is kept.
+    """
+    parts = NEXT_SPEAKER.split(conversation)
+    return "\n\n".join(SHOWN_FINDING.sub("", part) if part.startswith("Tool: ") else part for part in parts)
+
+
 def frame_turn(conversation: str, run: Run | None = None, user_text: str | None = None) -> dict:
     """Run one framing turn and return the structured V1 result.
 
@@ -290,8 +307,9 @@ def handle_request(conversation: str, run: Run, user_text: str | None, request: 
     run_id, request_hash = uuid.uuid4().hex[:12], short_hash(conversation)
     run.last_run_id = run_id
     shared = f"<conversation>\n{conversation}\n</conversation>"
+    framer_content = f"<conversation>\n{without_findings(conversation)}\n</conversation>"
 
-    frame = call_role("framer", shared, FRAMER_SCHEMA, check_frame, run, run_id, request_hash, request)
+    frame = call_role("framer", framer_content, FRAMER_SCHEMA, check_frame, run, run_id, request_hash, request)
 
     if user_text is None:
         user_text = user_words(conversation)
@@ -300,7 +318,7 @@ def handle_request(conversation: str, run: Run, user_text: str | None, request: 
         write_log({"event": "guardrail_hold", "run_id": run_id, "session_id": run.session_id,
                    "source": run.source, "case_id": run.case_id, "framing_held": True, "held": held})
 
-    # The Reviewer sees the shared conversation and the statement, and nothing else from the Framer.
+    # The Reviewer sees the whole conversation and the statement, and nothing else from the Framer.
     reviewer_ran = frame["status"] == "ready" and bool(frame["draft_statement"].strip())
     findings = []
     if reviewer_ran:
@@ -340,10 +358,8 @@ def render(result: dict) -> str:
     else:
         parts.append("There is not enough yet for a draft problem statement.")
     for finding in result["review"]:
-        parts.append(
-            f"Potential issue: Consider revising\n{finding['potential_issue']}\n"
-            f"Recommendation to strengthen\n{finding['recommendation']}"
-        )
+        issue, recommendation = (" ".join(finding[key].split()) for key in ("potential_issue", "recommendation"))
+        parts.append(f"{FINDING_HEADING}\n{issue}\n{RECOMMENDATION_HEADING}\n{recommendation}")
     parts.append(result["next_question"])
     return "\n\n".join(parts)
 
