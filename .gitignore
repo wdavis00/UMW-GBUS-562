@@ -228,3 +228,6 @@ APIKey.txt
 
 # Chroma vector databases (rebuilt locally with ask.py --rebuild)
 chroma_db/
+
+# Saved capstone sessions (may hold private content)
+capstone/sessions/

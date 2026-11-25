@@ -7,7 +7,7 @@ independent second look. The Reviewer never changes the draft, and only the user
 
 Usage (from the repository root):
     .venv/bin/python capstone/problem_framer.py --request "..."     one turn, prints JSON
-    .venv/bin/python capstone/problem_framer.py                     interactive; /confirm or /quit
+    .venv/bin/python capstone/problem_framer.py                     interactive; /end or /quit
     Add --model or --effort to change the model settings, which apply to both roles.
 
 Files outside the repository, in the folder above it:
@@ -17,6 +17,7 @@ Files outside the repository, in the folder above it:
     Week8/capstone-runs/run-log.jsonl       provisional diagnostic log
 
 Every request the tool handles is also recorded in capstone/runs/log.jsonl (see request_log.py).
+A session the user ends is kept in capstone/sessions, which git ignores (see session_end.py).
 
 The guidance is from the MITRE Innovation Toolkit's Problem Framing tool
 (https://itk.mitre.org/toolkit-tools/problem-framing/). MITRE Innovation Toolkit materials are
@@ -38,6 +39,7 @@ from pathlib import Path
 import anthropic
 
 import request_log
+import session_end
 from guardrail import apply_guardrail, user_words
 
 MODEL = "claude-opus-5-5"
@@ -48,6 +50,7 @@ HERE = Path(__file__).resolve().parent
 COURSE_DIR = HERE.parent.parent
 KEY_FILES = [COURSE_DIR / "API-Key.txt", COURSE_DIR / "APIKey.txt"]
 RUN_LOG = COURSE_DIR / "Week8" / "capstone-runs" / "run-log.jsonl"
+SESSIONS = HERE / "sessions"
 PROMPT_FILES = {"framer": HERE / "prompts" / "framer.txt", "reviewer": HERE / "prompts" / "reviewer.txt"}
 GUIDANCE_FILES = {
     "framer": COURSE_DIR / "Week8" / "Mitre" / "framer-guidance.txt",
@@ -326,7 +329,7 @@ def handle_request(conversation: str, run: Run, user_text: str | None, request: 
         review = call_role("reviewer", content, REVIEWER_SCHEMA, check_review, run, run_id, request_hash, request)
         findings = review["findings"]
 
-    # Set by code, never by a model. Only the user can confirm, through /confirm in the loop.
+    # Set by code, never by a model. Only the user can confirm, by ending a session in the loop.
     return {**frame, "review": findings, "reviewer_ran": reviewer_ran, "confirmed": False}
 
 
@@ -345,14 +348,7 @@ def render(result: dict) -> str:
     section("Being assumed:", result["assumptions"])
     section("Not known yet:", result["unknowns"])
     section("A solution you have raised:", [result["proposed_solution"]] if result["proposed_solution"] else [])
-    labels = []
-    for item in result["quantities"]:
-        basis = item["basis"].replace("_", " ")
-        if item["basis"] == "derived":
-            labels.append(f"{item['value']} (derived from {', '.join(item['from'])}): {item['note']}")
-        else:
-            labels.append(f"{item['value']} ({basis}, not established): {item['note']}")
-    section("Amounts you did not give me:", labels)
+    section("Amounts you did not give me:", [session_end.amount_label(item) for item in result["quantities"]])
     if result["draft_statement"]:
         parts.append("Draft problem statement, for you to correct or confirm:\n" + result["draft_statement"])
     else:
@@ -364,14 +360,45 @@ def render(result: dict) -> str:
     return "\n\n".join(parts)
 
 
+def end_session(run: Run, result: dict | None, current: bool, said: list[str]) -> bool:
+    """Show where things stand and let the user confirm, pause, or continue. Return True to leave."""
+    view = session_end.understanding(result, current)
+    choices = ["confirm", "pause", "continue"] if session_end.can_confirm(result, current) else ["pause", "continue"]
+    print(f"\n{view}\n")
+    if "confirm" in choices:
+        print(f"confirm: {session_end.CONFIRM_MEANING}\n         {session_end.CONFIRM_LIMIT}")
+    else:
+        print("There is no current problem statement to confirm, so you can pause or continue.")
+    print(f"pause: {session_end.PAUSE_MEANING}\ncontinue: Correct something or keep going. Nothing is saved.")
+    while True:
+        try:
+            choice = input(f"\nType {', '.join(choices[:-1])} or continue: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nNothing was saved.")
+            return True
+        if choice == "continue":
+            print("\nTell me what to correct or add.")
+            return False
+        if choice in choices:
+            ended = datetime.now().astimezone()
+            text = session_end.session_record(choice, view, said, ended)
+            try:
+                path = session_end.keep(SESSIONS, text, run.session_id, ended)
+            except OSError as error:
+                print(f"Error: the session could not be saved ({error.strerror}).", file=sys.stderr)
+                continue
+            print(f"\n{session_end.STATUS_LINES[choice]}. Saved as {path.relative_to(SESSIONS.parent)}.")
+            return True
+
+
 def run_loop(run: Run) -> None:
     """Let the user refine a frame. The transcript lives in memory and holds only what was displayed."""
     run.source, run.session_id = "interactive", uuid.uuid4().hex[:12]
     transcript: list[str] = []
     said: list[str] = []
-    statement = ""
+    result, current = None, False  # what the user was last shown, and whether it reflects the latest message
     print("Tell me about the concern, opportunity, idea, or proposed solution you are working through.")
-    print("Type /confirm to confirm a draft problem statement, or /quit to stop.")
+    print("Type /end to see where things stand and confirm or pause, or /quit to leave without saving.")
     while True:
         try:
             message = input("\nYou: ").strip()
@@ -382,17 +409,18 @@ def run_loop(run: Run) -> None:
             continue
         if message == "/quit":
             return
-        if message == "/confirm":
-            if not statement:
-                print("\nThere is no draft problem statement to confirm yet.")
-                continue
-            write_log({"event": "user_confirm", "run_id": run.last_run_id, "session_id": run.session_id,
-                       "source": run.source, "confirmed_statement": statement})
-            print("\nYour confirmation is recorded. The framing stops here.")
-            return
+        if message == "/end":
+            if not said:
+                print("\nThere is nothing to end yet.")
+            elif end_session(run, result, current, said):
+                return
+            continue
+        if message.startswith("/") and len(message.split()) == 1:  # never send a mistyped command to the model
+            print("\nThe commands are /end and /quit.")
+            continue
         transcript.append(f"User: {message}")
         said.append(message)
-        statement = ""  # a new message reopens the frame until a new draft is shown
+        current = False  # a new message reopens the frame until a new result is shown
         try:
             result = frame_turn("\n\n".join(transcript), run, "\n".join(said))
         except FramingError as error:
@@ -401,7 +429,7 @@ def run_loop(run: Run) -> None:
         shown = render(result)
         print(f"\n{shown}")
         transcript.append(f"Tool: {shown}")
-        statement = result["draft_statement"]
+        current = True
 
 
 def main() -> int:
