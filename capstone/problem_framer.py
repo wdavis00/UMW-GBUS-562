@@ -1,19 +1,22 @@
-"""Problem-framing tool, Week 6 V1: a Framer and an independent Reviewer.
+"""Problem-framing tool: a Framer that helps one person frame a problem, one question at a time.
 
 The Framer turns what a user has said into a tentative, solution-neutral problem frame and asks
 one next question. A code guardrail then holds any framing that presents an unsupported quantity as
-established (see guardrail.py). If there is a draft problem statement, the Reviewer gives an
-independent second look. The Reviewer never changes the draft, and only the user can confirm a frame.
+established (see guardrail.py). Each turn shows only a brief reflection and the next question; the
+whole frame is shown when the user ends the session. Only the user can confirm a frame.
+
+The Reviewer does not run during framing. Its prompt and output format are kept for a later
+independent review of the finished frame.
 
 Usage (from the repository root):
     .venv/bin/python capstone/problem_framer.py --request "..."     one turn, prints JSON
     .venv/bin/python capstone/problem_framer.py                     interactive; /end or /quit
-    Add --model or --effort to change the model settings, which apply to both roles.
+    Add --model or --effort to change the model settings.
 
 Files outside the repository, in the folder above it:
     API-Key.txt or APIKey.txt               the API key, read at run time, never printed or written
     Week8/Mitre/framer-guidance.txt         framing guidance for the Framer
-    Week8/Mitre/reviewer-criteria.txt       quality guidance for the Reviewer
+    Week8/Mitre/reviewer-criteria.txt       quality guidance for the Reviewer (not used during framing)
     Week8/capstone-runs/run-log.jsonl       provisional diagnostic log
 
 Every request the tool handles is also recorded in capstone/runs/log.jsonl (see request_log.py).
@@ -272,8 +275,7 @@ def frame_turn(conversation: str, run: Run | None = None, user_text: str | None 
     run = run or Run()
     if not conversation.strip():
         raise FramingError("empty", "The request is empty.")
-    for role in PROMPT_FILES:  # fail before any call if a required file is missing
-        load_system_prompt(role)
+    load_system_prompt("framer")  # fail before any call if a required file is missing
     if run.client is None:
         run.client = anthropic.Anthropic(api_key=load_api_key())
     if not isinstance(run.client, anthropic.Anthropic) and request_log.LOG_FILE == request_log.PRODUCTION_LOG:
@@ -306,10 +308,9 @@ def append_request(request: request_log.RequestRecord, output: str) -> None:
 
 
 def handle_request(conversation: str, run: Run, user_text: str | None, request: request_log.RequestRecord) -> dict:
-    """Run the Framer, the guardrail, and the Reviewer when there is a draft."""
+    """Run the Framer and the guardrail. No review runs during framing."""
     run_id, request_hash = uuid.uuid4().hex[:12], short_hash(conversation)
     run.last_run_id = run_id
-    shared = f"<conversation>\n{conversation}\n</conversation>"
     framer_content = f"<conversation>\n{without_findings(conversation)}\n</conversation>"
 
     frame = call_role("framer", framer_content, FRAMER_SCHEMA, check_frame, run, run_id, request_hash, request)
@@ -321,43 +322,19 @@ def handle_request(conversation: str, run: Run, user_text: str | None, request: 
         write_log({"event": "guardrail_hold", "run_id": run_id, "session_id": run.session_id,
                    "source": run.source, "case_id": run.case_id, "framing_held": True, "held": held})
 
-    # The Reviewer sees the whole conversation and the statement, and nothing else from the Framer.
-    reviewer_ran = frame["status"] == "ready" and bool(frame["draft_statement"].strip())
-    findings = []
-    if reviewer_ran:
-        content = f"{shared}\n\n<statement>\n{frame['draft_statement']}\n</statement>"
-        review = call_role("reviewer", content, REVIEWER_SCHEMA, check_review, run, run_id, request_hash, request)
-        findings = review["findings"]
-
     # Set by code, never by a model. Only the user can confirm, by ending a session in the loop.
-    return {**frame, "review": findings, "reviewer_ran": reviewer_ran, "confirmed": False}
+    return {**frame, "review": [], "reviewer_ran": False, "confirmed": False}
 
 
 # --- Interactive loop -----------------------------------------------------------------------
 
 
-def render(result: dict) -> str:
-    """Return exactly what the user is shown for a result. This text also joins the transcript."""
-    parts = [result["reflection"]]
+def turn_text(result: dict) -> str:
+    """Return what the user is shown after a turn. This text also joins the transcript.
 
-    def section(title: str, items: list[str]) -> None:
-        if items:
-            parts.append(title + "\n" + "\n".join(f"- {item}" for item in items))
-
-    section("What you have told me:", result["stated"])
-    section("Being assumed:", result["assumptions"])
-    section("Not known yet:", result["unknowns"])
-    section("A solution you have raised:", [result["proposed_solution"]] if result["proposed_solution"] else [])
-    section("Amounts you did not give me:", [session_end.amount_label(item) for item in result["quantities"]])
-    if result["draft_statement"]:
-        parts.append("Draft problem statement, for you to correct or confirm:\n" + result["draft_statement"])
-    else:
-        parts.append("There is not enough yet for a draft problem statement.")
-    for finding in result["review"]:
-        issue, recommendation = (" ".join(finding[key].split()) for key in ("potential_issue", "recommendation"))
-        parts.append(f"{FINDING_HEADING}\n{issue}\n{RECOMMENDATION_HEADING}\n{recommendation}")
-    parts.append(result["next_question"])
-    return "\n\n".join(parts)
+    Only the brief reflection and the next question. The rest of the frame is kept and shown at /end.
+    """
+    return "\n\n".join(part for part in (result["reflection"].strip(), result["next_question"]) if part)
 
 
 def end_session(run: Run, result: dict | None, current: bool, said: list[str]) -> bool:
@@ -426,7 +403,7 @@ def run_loop(run: Run) -> None:
         except FramingError as error:
             print(f"Error: {error}", file=sys.stderr)
             continue
-        shown = render(result)
+        shown = turn_text(result)
         print(f"\n{shown}")
         transcript.append(f"Tool: {shown}")
         current = True
