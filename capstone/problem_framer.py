@@ -14,11 +14,14 @@ Files outside the repository, in the folder above it:
     API-Key.txt or APIKey.txt               the API key, read at run time, never printed or written
     Week8/Mitre/framer-guidance.txt         framing guidance for the Framer
     Week8/Mitre/reviewer-criteria.txt       quality guidance for the Reviewer
-    Week8/capstone-runs/run-log.jsonl       provisional run log
+    Week8/capstone-runs/run-log.jsonl       provisional diagnostic log
+
+Every request the tool handles is also recorded in capstone/runs/log.jsonl (see request_log.py).
 
 The guidance is from the MITRE Innovation Toolkit's Problem Framing tool
-(https://itk.mitre.org/toolkit-tools/problem-framing/). It is licensed separately from this
-repository, so its text is kept outside it.
+(https://itk.mitre.org/toolkit-tools/problem-framing/). MITRE Innovation Toolkit materials are
+copyright The MITRE Corporation and remain governed by MITRE's terms, separately from this
+repository's license, so their text is kept outside it.
 """
 
 import argparse
@@ -33,6 +36,7 @@ from pathlib import Path
 
 import anthropic
 
+import request_log
 from guardrail import apply_guardrail, user_words
 
 MODEL = "claude-opus-5-5"
@@ -173,7 +177,8 @@ def check_review(review: dict) -> None:
             raise FramingError("invalid", "The Reviewer returned a finding with an empty part.")
 
 
-def call_role(role: str, content: str, schema: dict, check, run: Run, run_id: str, request_hash: str) -> dict:
+def call_role(role: str, content: str, schema: dict, check, run: Run, run_id: str, request_hash: str,
+              request: request_log.RequestRecord) -> dict:
     """Make one model call and return its validated JSON. Every call is logged, including failures."""
     system = load_system_prompt(role)
     record = {
@@ -194,6 +199,7 @@ def call_role(role: str, content: str, schema: dict, check, run: Run, run_id: st
         "error": None,
     }
     started = time.monotonic()
+    request.add_call()
     try:
         try:
             response = run.client.messages.create(
@@ -208,10 +214,13 @@ def call_role(role: str, content: str, schema: dict, check, run: Run, run_id: st
         except anthropic.AnthropicError as error:
             raise FramingError("api_error", f"The API call failed ({type(error).__name__}).") from None
         finally:
-            record["elapsed_seconds"] = round(time.monotonic() - started, 2)
+            elapsed = time.monotonic() - started
+            record["elapsed_seconds"] = round(elapsed, 2)
+            request.add_seconds(elapsed)
         record["input_tokens"] = response.usage.input_tokens
         record["output_tokens"] = response.usage.output_tokens
         record["stop_reason"] = response.stop_reason
+        request.add_usage(response.usage.input_tokens, response.usage.output_tokens)
         if response.stop_reason != "end_turn":
             raise FramingError("unusable", f"The {role} gave no complete reply (stop reason: {response.stop_reason}).")
         text = "".join(block.text for block in response.content if block.type == "text")
@@ -247,11 +256,42 @@ def frame_turn(conversation: str, run: Run | None = None, user_text: str | None 
         load_system_prompt(role)
     if run.client is None:
         run.client = anthropic.Anthropic(api_key=load_api_key())
+    if not isinstance(run.client, anthropic.Anthropic) and request_log.LOG_FILE == request_log.PRODUCTION_LOG:
+        raise FramingError("log", "A stand-in client may not write to the real run log.")
+
+    request = request_log.RequestRecord(run.model, conversation)
+    try:
+        result = handle_request(conversation, run, user_text, request)
+    except BaseException as error:
+        if request.calls:  # work was done, so the request is recorded even though it failed
+            append_request(request, f"Error: {public_reason(error)}")
+        raise
+    append_request(request, json.dumps(result, ensure_ascii=False))
+    return result
+
+
+def public_reason(error: BaseException) -> str:
+    """Return an error description that is safe in a published log: no local paths or exception detail."""
+    if not isinstance(error, FramingError):
+        return f"unexpected {type(error).__name__}"
+    return "A required file is missing." if error.kind == "missing_file" else str(error)
+
+
+def append_request(request: request_log.RequestRecord, output: str) -> None:
+    """Record a handled request. A request whose record is lost must not look successful."""
+    try:
+        request.append(output)
+    except OSError:
+        raise FramingError("log", "The run log could not be written, so this request was not completed.") from None
+
+
+def handle_request(conversation: str, run: Run, user_text: str | None, request: request_log.RequestRecord) -> dict:
+    """Run the Framer, the guardrail, and the Reviewer when there is a draft."""
     run_id, request_hash = uuid.uuid4().hex[:12], short_hash(conversation)
     run.last_run_id = run_id
     shared = f"<conversation>\n{conversation}\n</conversation>"
 
-    frame = call_role("framer", shared, FRAMER_SCHEMA, check_frame, run, run_id, request_hash)
+    frame = call_role("framer", shared, FRAMER_SCHEMA, check_frame, run, run_id, request_hash, request)
 
     if user_text is None:
         user_text = user_words(conversation)
@@ -265,7 +305,8 @@ def frame_turn(conversation: str, run: Run | None = None, user_text: str | None 
     findings = []
     if reviewer_ran:
         content = f"{shared}\n\n<statement>\n{frame['draft_statement']}\n</statement>"
-        findings = call_role("reviewer", content, REVIEWER_SCHEMA, check_review, run, run_id, request_hash)["findings"]
+        review = call_role("reviewer", content, REVIEWER_SCHEMA, check_review, run, run_id, request_hash, request)
+        findings = review["findings"]
 
     # Set by code, never by a model. Only the user can confirm, through /confirm in the loop.
     return {**frame, "review": findings, "reviewer_ran": reviewer_ran, "confirmed": False}
