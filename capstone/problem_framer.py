@@ -5,8 +5,11 @@ one next question. A code guardrail then holds any framing that presents an unsu
 established (see guardrail.py). Each turn shows only a brief reflection and the next question; the
 whole frame is shown when the user ends the session. Only the user can confirm a frame.
 
-The Reviewer does not run during framing. Its prompt and output format are kept for a later
-independent review of the finished frame.
+At /end the Framer builds the complete semantic basis once, from the whole conversation, and the user
+sees it rendered and confirms or pauses. That exact basis is frozen. One Independent Review call then
+assesses the frozen basis, and its output can go only to the review section of the human report. Two
+files are kept: a Problem-Framing Report for people and an AI handoff built from the basis alone.
+Nothing flows backward: the review cannot change the basis, the status, or the handoff.
 
 Usage (from the repository root):
     .venv/bin/python capstone/problem_framer.py --request "..."     one turn, prints JSON
@@ -16,11 +19,11 @@ Usage (from the repository root):
 Files outside the repository, in the folder above it:
     API-Key.txt or APIKey.txt               the API key, read at run time, never printed or written
     Week8/Mitre/framer-guidance.txt         framing guidance for the Framer
-    Week8/Mitre/reviewer-criteria.txt       quality guidance for the Reviewer (not used during framing)
+    Week8/Mitre/reviewer-criteria.txt       quality guidance for the Independent Review
     Week8/capstone-runs/run-log.jsonl       provisional diagnostic log
 
 Every request the tool handles is also recorded in capstone/runs/log.jsonl (see request_log.py).
-A session the user ends is kept in capstone/sessions, which git ignores (see session_end.py).
+A session the user ends is kept in capstone/sessions, which git ignores (see session_end.py and outputs.py).
 
 The guidance is from the MITRE Innovation Toolkit's Problem Framing tool
 (https://itk.mitre.org/toolkit-tools/problem-framing/). MITRE Innovation Toolkit materials are
@@ -41,9 +44,10 @@ from pathlib import Path
 
 import anthropic
 
+import outputs
 import request_log
 import session_end
-from guardrail import apply_guardrail, user_words
+from guardrail import apply_guardrail, find_amounts, user_words
 
 MODEL = "claude-opus-5-5"
 EFFORT = "medium"
@@ -55,6 +59,7 @@ KEY_FILES = [COURSE_DIR / "API-Key.txt", COURSE_DIR / "APIKey.txt"]
 RUN_LOG = COURSE_DIR / "Week8" / "capstone-runs" / "run-log.jsonl"
 SESSIONS = HERE / "sessions"
 PROMPT_FILES = {"framer": HERE / "prompts" / "framer.txt", "reviewer": HERE / "prompts" / "reviewer.txt"}
+END_PROMPT = HERE / "prompts" / "framer-end.txt"  # added to the Framer prompt for the one call at /end
 GUIDANCE_FILES = {
     "framer": COURSE_DIR / "Week8" / "Mitre" / "framer-guidance.txt",
     "reviewer": COURSE_DIR / "Week8" / "Mitre" / "reviewer-criteria.txt",
@@ -90,9 +95,31 @@ FRAMER_SCHEMA = object_schema(
     draft_statement=TEXT,
     next_question=TEXT,
 )
-REVIEWER_SCHEMA = object_schema(
-    findings={"type": "array", "items": object_schema(potential_issue=TEXT, recommendation=TEXT)}
+QUANTITIES = FRAMER_SCHEMA["properties"]["quantities"]
+# The semantic basis the Framer builds once at /end. Status is not here: only the user sets it.
+BASIS_SCHEMA = object_schema(
+    user_material={"type": "array", "items": object_schema(
+        kind={"type": "string", "enum": outputs.KINDS},
+        text=TEXT,
+        standing={"type": "string", "enum": ["reported", "belief", "estimate"]},
+        relation=TEXT,
+    )},
+    understanding=object_schema(
+        problem=TEXT, affected=TEXT_LIST, cases=TEXT_LIST, desired_state=TEXT, solution_standing=TEXT,
+        assumptions=TEXT_LIST, unknowns=TEXT_LIST, statement=TEXT,
+    ),
+    quantities=QUANTITIES,
 )
+# The Independent Review. Review fields only: nothing here can stand for or replace framing state.
+REVIEW_SCHEMA = object_schema(
+    overall=TEXT,
+    strengths=TEXT_LIST,
+    limitations={"type": "array", "items": object_schema(observation=TEXT, why_it_matters=TEXT)},
+    statement_fit=TEXT,
+    optional_evidence={"type": "array", "items": object_schema(evidence=TEXT, why_it_matters=TEXT)},
+)
+MAX_EVIDENCE = 3
+IDENTITY_WORDS = re.compile(r"\b(he|him|his|himself|she|her|hers|herself|mr|mrs|ms)\b", re.IGNORECASE)
 
 
 class FramingError(Exception):
@@ -133,6 +160,10 @@ def load_api_key() -> str:
 
 def load_system_prompt(role: str) -> str:
     """Return the role's product prompt with its external guidance inserted."""
+    if role == "framer_end":
+        if not END_PROMPT.is_file():
+            raise FramingError("missing_file", f"Required file not found for the Framer: {END_PROMPT}")
+        return load_system_prompt("framer") + "\n\n" + END_PROMPT.read_text(encoding="utf-8")
     prompt_file, guidance_file = PROMPT_FILES[role], GUIDANCE_FILES[role]
     for path in (prompt_file, guidance_file):
         if not path.is_file():
@@ -185,9 +216,36 @@ def check_frame(frame: dict) -> None:
 
 
 def check_review(review: dict) -> None:
-    for finding in review["findings"]:
-        if not finding["potential_issue"].strip() or not finding["recommendation"].strip():
-            raise FramingError("invalid", "The Reviewer returned a finding with an empty part.")
+    """Reject a review that is empty where it must not be or has too many evidence items. Never repair it."""
+    if not review["overall"].strip() or not review["statement_fit"].strip():
+        raise FramingError("invalid", "The review is missing its overall assessment or statement fit.")
+    if len(review["optional_evidence"]) > MAX_EVIDENCE:
+        raise FramingError("invalid", f"The review lists more than {MAX_EVIDENCE} evidence items.")
+    texts = review["strengths"] + [v for x in review["limitations"] + review["optional_evidence"] for v in x.values()]
+    if not all(text.strip() for text in texts):
+        raise FramingError("invalid", "The review has an empty item.")
+
+
+def identity_words(basis: dict, user_text: str) -> set[str]:
+    """Gendered words or titles in the basis that the user never used."""
+    used = {w.lower() for w in IDENTITY_WORDS.findall(user_text)}
+    return {w.lower() for w in IDENTITY_WORDS.findall(json.dumps(basis, ensure_ascii=False))} - used
+
+
+def check_basis(basis: dict, user_text: str) -> None:
+    """Enforce the basis rules code can check. A basis that breaks one is not shown or kept."""
+    kinds = {item["kind"] for item in basis["user_material"]}
+    u = basis["understanding"]
+    if not all(item["text"].strip() for item in basis["user_material"]):
+        raise FramingError("invalid", "The basis has an empty item.")
+    if u["desired_state"].strip() and "desired_state" not in kinds:
+        raise FramingError("invalid", "The basis gives a desired state the user did not supply.")
+    if bool(u["solution_standing"].strip()) != ("proposed_solution" in kinds):
+        raise FramingError("invalid", "The basis gives a solution standing without a proposed solution, or the reverse.")
+    if "solution_reason" in kinds and "proposed_solution" not in kinds:
+        raise FramingError("invalid", "The basis gives reasons for a solution the user did not raise.")
+    if identity_words(basis, user_text):
+        raise FramingError("invalid", "The basis uses a gendered word or title the user did not use.")
 
 
 def call_role(role: str, content: str, schema: dict, check, run: Run, run_id: str, request_hash: str,
@@ -337,15 +395,99 @@ def turn_text(result: dict) -> str:
     return "\n\n".join(part for part in (result["reflection"].strip(), result["next_question"]) if part)
 
 
-def end_session(run: Run, result: dict | None, current: bool, said: list[str]) -> bool:
-    """Show where things stand and let the user confirm, pause, or continue. Return True to leave."""
-    view = session_end.understanding(result, current)
-    choices = ["confirm", "pause", "continue"] if session_end.can_confirm(result, current) else ["pause", "continue"]
+def build_basis(conversation: str, said: list[str], run: Run) -> tuple[dict, list[dict]]:
+    """The Framer's one call at /end: the complete semantic basis, and any amounts held as unsupported.
+
+    The basis is checked and its amounts are checked as the guardrail checks a turn. A held basis can be
+    paused but not confirmed. One canonical log line is written for the request.
+    """
+    if run.client is None:
+        run.client = anthropic.Anthropic(api_key=load_api_key())
+    if not isinstance(run.client, anthropic.Anthropic) and request_log.LOG_FILE == request_log.PRODUCTION_LOG:
+        raise FramingError("log", "A stand-in client may not write to the real run log.")
+    user_text = "\n".join(said)
+    request = request_log.RequestRecord(run.model, conversation)
+    run_id, request_hash = uuid.uuid4().hex[:12], short_hash(conversation)
+    content = f"<conversation>\n{without_findings(conversation)}\n</conversation>"
+    try:
+        basis = call_role("framer_end", content, BASIS_SCHEMA, lambda b: check_basis(b, user_text),
+                          run, run_id, request_hash, request)
+    except BaseException as error:
+        if request.calls:
+            append_request(request, f"Error: {public_reason(error)}")
+        raise
+    u = basis["understanding"]
+    as_frame = {"stated": [item["text"] for item in basis["user_material"]], "draft_statement": u["statement"],
+                "quantities": basis["quantities"], "reflection": "", "assumptions": [], "status": "ready",
+                "next_question": ""}
+    reasons = apply_guardrail(as_frame, user_text)[1]
+    if reasons:
+        write_log({"event": "guardrail_hold", "run_id": run_id, "session_id": run.session_id,
+                   "source": run.source, "case_id": "end", "framing_held": True, "held": reasons})
+    written = {}  # each held amount as the basis wrote it, for display
+    for text in as_frame["stated"] + [u["statement"]]:
+        written.update(find_amounts(text))
+    held = [{"value": written.get(r["value"], r["value"]), "reason": r["reason"]} for r in reasons]
+    append_request(request, json.dumps(basis, ensure_ascii=False))
+    return basis, held
+
+
+def independent_review(review_text: str, run: Run) -> dict | None:
+    """One Independent Review call on the fixed review input. Returns None if no usable review came back.
+
+    It receives text only, so it has no way to reach the frozen state, and its result is returned to the
+    caller for the report alone. One canonical log line is written for the request.
+    """
+    request = request_log.RequestRecord(run.model, review_text)
+    run_id, request_hash = uuid.uuid4().hex[:12], short_hash(review_text)
+    try:
+        review = call_role("reviewer", review_text, REVIEW_SCHEMA, check_review, run, run_id, request_hash, request)
+    except FramingError as error:
+        if request.calls:
+            append_request(request, f"Error: {public_reason(error)}")
+        return None
+    append_request(request, json.dumps(review, ensure_ascii=False))
+    return review
+
+
+def finish(run: Run, record: dict, said: list[str], view: str) -> Path:
+    """Keep the frozen state, then review it, then write the two outputs. Return the session folder.
+
+    Order matters: the basis is saved and fingerprinted before the review runs, and the fingerprint is
+    checked again before anything is rendered from it.
+    """
+    before = session_end.fingerprint(record)
+    basis_text = json.dumps({**record, "fingerprint": before}, indent=2, ensure_ascii=False) + "\n"
+    path = session_end.keep(SESSIONS, run.session_id, datetime.fromisoformat(record["ended"]),
+                            {session_end.BASIS_FILE: basis_text,
+                             session_end.RECORD_FILE: session_end.session_record(record, view, said)})
+    print("\nWriting the Independent Review...")
+    review = independent_review(outputs.review_input(record, said), run)
+    if session_end.fingerprint(record) != before:
+        raise RuntimeError("The frozen framing state changed during the review.")
+    session_end.add(path, {session_end.REPORT_FILE: outputs.report_markdown(record, review),
+                           session_end.HANDOFF_FILE: outputs.handoff_markdown(record)})
+    if review is None:
+        print("The Independent Review could not be produced. The report says so, and the framing is unaffected.",
+              file=sys.stderr)
+    return path
+
+
+def end_session(run: Run, conversation: str, said: list[str]) -> bool:
+    """Build the basis, show it, and let the user confirm, pause, or continue. Return True to leave."""
+    print("\nPutting together where things stand...")
+    try:
+        basis, held = build_basis(conversation, said, run)
+    except FramingError as error:
+        print(f"Error: {error} Nothing was saved. You can type /end again or keep going.", file=sys.stderr)
+        return False
+    view = session_end.understanding(basis, held)
+    choices = ["confirm", "pause", "continue"] if session_end.can_confirm(basis, held) else ["pause", "continue"]
     print(f"\n{view}\n")
     if "confirm" in choices:
         print(f"confirm: {session_end.CONFIRM_MEANING}\n         {session_end.CONFIRM_LIMIT}")
     else:
-        print("There is no current problem statement to confirm, so you can pause or continue.")
+        print("There is no problem statement you can confirm yet, so you can pause or continue.")
     print(f"pause: {session_end.PAUSE_MEANING}\ncontinue: Correct something or keep going. Nothing is saved.")
     while True:
         try:
@@ -357,14 +499,15 @@ def end_session(run: Run, result: dict | None, current: bool, said: list[str]) -
             print("\nTell me what to correct or add.")
             return False
         if choice in choices:
-            ended = datetime.now().astimezone()
-            text = session_end.session_record(choice, view, said, ended)
+            record = session_end.freeze(basis, held, choice, datetime.now().astimezone())
             try:
-                path = session_end.keep(SESSIONS, text, run.session_id, ended)
+                path = finish(run, record, said, view)
             except OSError as error:
                 print(f"Error: the session could not be saved ({error.strerror}).", file=sys.stderr)
                 continue
-            print(f"\n{session_end.STATUS_LINES[choice]}. Saved as {path.relative_to(SESSIONS.parent)}.")
+            print(f"\n{session_end.STATUS_LINES[choice]}. Saved in {path.relative_to(SESSIONS.parent)}:")
+            print(f"  {session_end.REPORT_FILE}  the Problem-Framing Report, with the Independent Review")
+            print(f"  {session_end.HANDOFF_FILE}  the framing state, for use with another AI")
             return True
 
 
@@ -373,7 +516,6 @@ def run_loop(run: Run) -> None:
     run.source, run.session_id = "interactive", uuid.uuid4().hex[:12]
     transcript: list[str] = []
     said: list[str] = []
-    result, current = None, False  # what the user was last shown, and whether it reflects the latest message
     print("Tell me about the concern, opportunity, idea, or proposed solution you are working through.")
     print("Type /end to see where things stand and confirm or pause, or /quit to leave without saving.")
     while True:
@@ -389,7 +531,7 @@ def run_loop(run: Run) -> None:
         if message == "/end":
             if not said:
                 print("\nThere is nothing to end yet.")
-            elif end_session(run, result, current, said):
+            elif end_session(run, "\n\n".join(transcript), said):
                 return
             continue
         if message.startswith("/") and len(message.split()) == 1:  # never send a mistyped command to the model
@@ -397,7 +539,6 @@ def run_loop(run: Run) -> None:
             continue
         transcript.append(f"User: {message}")
         said.append(message)
-        current = False  # a new message reopens the frame until a new result is shown
         try:
             result = frame_turn("\n\n".join(transcript), run, "\n".join(said))
         except FramingError as error:
@@ -406,7 +547,6 @@ def run_loop(run: Run) -> None:
         shown = turn_text(result)
         print(f"\n{shown}")
         transcript.append(f"Tool: {shown}")
-        current = True
 
 
 def main() -> int:
