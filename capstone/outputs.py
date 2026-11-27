@@ -22,8 +22,8 @@ PAUSE_MEANING = (
 
 KINDS = ["situation", "effect", "scope", "constraint", "desired_state", "proposed_solution", "solution_reason",
          "not_known"]
-STANDING_REPORT = {"reported": "", "belief": " (the user's view)", "estimate": " (the user's estimate)"}
-STANDING_STATE = {"reported": "", "belief": " [the user's belief]", "estimate": " [the user's estimate]"}
+STANDING_REPORT = {"reported": "", "belief": " (belief)", "estimate": " (estimate)"}
+STANDING_STATE = {"reported": "", "belief": " [belief]", "estimate": " [estimate]"}
 STATEMENT_LABELS = {
     "view": "Draft wording.",
     "confirm": "The user confirmed this wording for now.",
@@ -34,11 +34,12 @@ NO_DESIRED_STATE = "Not described yet. The session did not establish what a bett
 SOLUTION_NOTE = ("This is an idea under consideration, kept apart from the problem. This report does not assess "
                  "whether it is a good solution.")
 CONTRACT = [
-    "Part A is what the user supplied, with its standing. It is the basis.",
+    "Part A is what the user supplied, with its standing. It is the basis. Items in Part A without a standing tag "
+    "are reported as supplied.",
     "Part B is the tool's integrated interpretation of Part A. It is derived, not the user's words.",
     "Keep beliefs, estimates, unknowns and qualifications as they are. Do not silently resolve ambiguity, turn a "
     "belief or estimate into a fact, or present an interpretation as something the user said.",
-    "A proposed solution is an idea the user is considering. It is not a requirement or a decision, and nothing "
+    "A proposed solution is an idea under consideration. It is not a requirement or a decision, and nothing "
     "here shows it is right.",
     "A desired state describes what a better condition would look like, not how it would be brought about.",
     "Nothing here says what the user wants to do next. Use it as context for whatever they ask.",
@@ -151,7 +152,7 @@ def state_parts(record: dict) -> list[str]:
     part_a = ["## Part A. What the user supplied"]
     for title, kind in [("Situation", "situation"), ("Effects", "effect"), ("When and where it applies", "scope"),
                         ("Constraints", "constraint"), ("Desired state", "desired_state"),
-                        ("Proposed solution (the user's idea, not decided)", "proposed_solution"),
+                        ("Proposed solution (under consideration, not decided)", "proposed_solution"),
                         ("Reasons the user gave for it", "solution_reason"),
                         ("What the user said they do not know", "not_known")]:
         values = a(kind)
