@@ -13,7 +13,7 @@ Nothing flows backward: the review cannot change the basis, the status, or the h
 
 Usage (from the repository root):
     .venv/bin/python capstone/problem_framer.py --request "..."     one turn, prints JSON
-    .venv/bin/python capstone/problem_framer.py                     interactive; /end or /quit
+    .venv/bin/python capstone/problem_framer.py                     interactive; /end, /quit or /discard
     Add --model or --effort to change the model settings.
 
 Files outside the repository, in the folder above it:
@@ -45,6 +45,7 @@ from pathlib import Path
 import anthropic
 
 import outputs
+import recovery
 import request_log
 import session_end
 from guardrail import apply_guardrail, find_amounts, user_words
@@ -58,6 +59,8 @@ COURSE_DIR = HERE.parent.parent
 KEY_FILES = [COURSE_DIR / "API-Key.txt", COURSE_DIR / "APIKey.txt"]
 RUN_LOG = COURSE_DIR / "Week8" / "capstone-runs" / "run-log.jsonl"
 SESSIONS = HERE / "sessions"
+RECOVERY_FILE = HERE / "recovery" / "active-session.json"  # the one unfinished session, if any (git-ignored)
+PRODUCTION_RECOVERY = RECOVERY_FILE  # stays fixed when a test changes RECOVERY_FILE
 PROMPT_FILES = {"framer": HERE / "prompts" / "framer.txt", "reviewer": HERE / "prompts" / "reviewer.txt"}
 END_PROMPT = HERE / "prompts" / "framer-end.txt"  # added to the Framer prompt for the one call at /end
 GUIDANCE_FILES = {
@@ -473,8 +476,13 @@ def finish(run: Run, record: dict, said: list[str], view: str) -> Path:
     return path
 
 
+CHOICE_WORDS = {"confirm": "confirm", "pause": "draft"}  # what the user types; the internal choice stays "pause"
+CHOICE_LINES = {"confirm": "CONFIRMED BY THE USER", "pause": "SAVED AS A DRAFT, NOT CONFIRMED"}
+KEPT = "Your conversation is kept, so you can resume it next time."
+
+
 def end_session(run: Run, conversation: str, said: list[str]) -> bool:
-    """Build the basis, show it, and let the user confirm, pause, or continue. Return True to leave."""
+    """Build the basis, show it, and let the user confirm, save a draft, or continue. Return True to leave."""
     print("\nPutting together where things stand...")
     try:
         basis, held = build_basis(conversation, said, run)
@@ -487,14 +495,17 @@ def end_session(run: Run, conversation: str, said: list[str]) -> bool:
     if "confirm" in choices:
         print(f"confirm: {session_end.CONFIRM_MEANING}\n         {session_end.CONFIRM_LIMIT}")
     else:
-        print("There is no problem statement you can confirm yet, so you can pause or continue.")
-    print(f"pause: {session_end.PAUSE_MEANING}\ncontinue: Correct something or keep going. Nothing is saved.")
+        print("There is no problem statement you can confirm yet, so you can save a draft or continue.")
+    print(f"draft: Save as a draft, not confirmed. {session_end.PAUSE_MEANING}\n"
+          "continue: Correct something or keep going. Nothing is saved.")
+    words = [CHOICE_WORDS[c] for c in choices[:-1]]
     while True:
         try:
-            choice = input(f"\nType {', '.join(choices[:-1])} or continue: ").strip().lower()
+            typed = input(f"\nType {', '.join(words)} or continue: ").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            print("\nNothing was saved.")
+            print(f"\nNo report was saved. {KEPT}")
             return True
+        choice = "pause" if typed in ("draft", "pause") else typed
         if choice == "continue":
             print("\nTell me what to correct or add.")
             return False
@@ -505,29 +516,118 @@ def end_session(run: Run, conversation: str, said: list[str]) -> bool:
             except OSError as error:
                 print(f"Error: the session could not be saved ({error.strerror}).", file=sys.stderr)
                 continue
-            print(f"\n{session_end.STATUS_LINES[choice]}. Saved in {path.relative_to(SESSIONS.parent)}:")
+            try:
+                recovery.discard(RECOVERY_FILE)  # only now: both outputs are written and the frame was re-checked
+            except OSError:
+                pass  # the next start sees this session's saved outputs and retires the file then
+            print(f"\n{CHOICE_LINES[choice]}. Saved in {path.relative_to(SESSIONS.parent)}:")
             print(f"  {session_end.REPORT_FILE}  the Problem-Framing Report, with the Independent Review")
             print(f"  {session_end.HANDOFF_FILE}  the framing state, for use with another AI")
             return True
 
 
+def open_session(run: Run) -> tuple[list[str], list[str], str] | None:
+    """Start a clean session, or offer to resume the one unfinished session. None means the user chose to exit."""
+    def clean():
+        run.session_id = uuid.uuid4().hex[:12]
+        return [], [], datetime.now().astimezone().isoformat(timespec="seconds")
+    try:
+        state = recovery.load(RECOVERY_FILE)
+    except recovery.RecoveryError as error:
+        moved = recovery.set_aside(RECOVERY_FILE)
+        print(f"Unfinished work was found but could not be recovered ({error}) It was set aside as {moved.name}.")
+        return clean()
+    if state is None:
+        return clean()
+    done = recovery.completed(SESSIONS, state["session_id"])
+    if done:
+        recovery.discard(RECOVERY_FILE)
+        print(f"Your last conversation was already saved in {done.relative_to(SESSIONS.parent)}. Starting a new one.")
+        return clean()
+    first = " ".join(state["said"][0].split()[:12])
+    print(f"You have an unfinished conversation, last saved {state['updated']}, with {len(state['said'])} "
+          f"message(s) from you. It begins: \"{first}...\"")
+    while True:
+        try:
+            typed = input("Type resume, new, or exit: ").strip().lower()
+            if typed == "new":
+                sure = input("Starting new deletes the unfinished conversation. Type yes to delete it: ").strip().lower()
+                if sure != "yes":
+                    continue
+                recovery.discard(RECOVERY_FILE)
+                return clean()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return None
+        if typed == "exit":
+            return None
+        if typed == "resume":
+            run.session_id = state["session_id"]
+            return state["transcript"], state["said"], state["created"]
+
+
 def run_loop(run: Run) -> None:
-    """Let the user refine a frame. The transcript lives in memory and holds only what was displayed."""
-    run.source, run.session_id = "interactive", uuid.uuid4().hex[:12]
-    transcript: list[str] = []
-    said: list[str] = []
-    print("Tell me about the concern, opportunity, idea, or proposed solution you are working through.")
-    print("Type /end to see where things stand and confirm or pause, or /quit to leave without saving.")
+    """Let the user refine a frame. The transcript lives in memory, holds only what was displayed, and is
+    kept on local disk whenever it changes so that an interruption does not lose the conversation."""
+    run.source = "interactive"
+    if run.client is not None and not isinstance(run.client, anthropic.Anthropic) and RECOVERY_FILE == PRODUCTION_RECOVERY:
+        raise FramingError("recovery", "A stand-in client may not use the real recovery file.")
+    opened = open_session(run)
+    if opened is None:
+        return
+    transcript, said, created = opened
+
+    def keep() -> None:
+        try:
+            recovery.save(RECOVERY_FILE, run.session_id, created, run.model, run.effort, transcript, said)
+        except OSError as error:
+            print(f"Warning: the conversation could not be kept for recovery ({error.strerror}).", file=sys.stderr)
+
+    def answer() -> None:
+        try:
+            result = frame_turn("\n\n".join(transcript), run, "\n".join(said))
+        except FramingError as error:
+            print(f"Error: {error}", file=sys.stderr)
+            return
+        shown = turn_text(result)
+        print(f"\n{shown}")
+        transcript.append(f"Tool: {shown}")
+        keep()
+
+    if said:
+        print("Resuming your conversation.")
+        last_tool = next((line for line in reversed(transcript) if line.startswith("Tool: ")), None)
+        if transcript[-1].startswith("User: "):
+            print("Your last message had not been answered yet, so here is the answer.")
+            answer()
+        elif last_tool:
+            print(f"\n{last_tool[len('Tool: '):]}")
+    else:
+        print("Tell me about the concern, opportunity, idea, or proposed solution you are working through.")
+    print("Type /end to see where things stand and confirm or save a draft, /quit to leave for now and resume "
+          "later, or /discard to delete this conversation.")
     while True:
         try:
             message = input("\nYou: ").strip()
         except (EOFError, KeyboardInterrupt):
-            print()
+            print(f"\n{KEPT}" if said else "")
             return
         if not message:
             continue
         if message == "/quit":
+            if said:
+                print(f"\n{KEPT}")
             return
+        if message == "/discard":
+            try:
+                sure = input("This deletes the conversation. Type yes to delete it: ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                sure = ""
+            if sure == "yes":
+                recovery.discard(RECOVERY_FILE)
+                print("\nDeleted.")
+                return
+            continue
         if message == "/end":
             if not said:
                 print("\nThere is nothing to end yet.")
@@ -535,18 +635,12 @@ def run_loop(run: Run) -> None:
                 return
             continue
         if message.startswith("/") and len(message.split()) == 1:  # never send a mistyped command to the model
-            print("\nThe commands are /end and /quit.")
+            print("\nThe commands are /end, /quit and /discard.")
             continue
         transcript.append(f"User: {message}")
         said.append(message)
-        try:
-            result = frame_turn("\n\n".join(transcript), run, "\n".join(said))
-        except FramingError as error:
-            print(f"Error: {error}", file=sys.stderr)
-            continue
-        shown = turn_text(result)
-        print(f"\n{shown}")
-        transcript.append(f"Tool: {shown}")
+        keep()  # before the call, so the message survives a failed or interrupted call
+        answer()
 
 
 def main() -> int:

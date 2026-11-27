@@ -231,3 +231,6 @@ chroma_db/
 
 # Saved capstone sessions (may hold private content)
 capstone/sessions/
+
+# Unfinished-session recovery file (holds private conversation text)
+capstone/recovery/
